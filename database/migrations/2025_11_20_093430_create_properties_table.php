@@ -13,29 +13,38 @@ return new class extends Migration
     {
         Schema::create('properties', function (Blueprint $table) {
             $table->id();
-            // Relationship
-            $table->foreignId('landlord_id')->constrained()->onDelete('cascade');
+             // Relationship
+            $table->foreignId('landlord_id')->constrained()->onDelete('cascade')->index();
 
             // Basic property info
-            $table->string('property_name')->nullable();
-            $table->text('address')->nullable();
+            $table->string('property_reference')->nullable()->index();
+
+            $table->enum('property_type', ['House', 'Flat', 'Apartment', 'Commercial'])->default('House');
+
+            $table->enum('status', ['Vacant', 'Occupied', 'Maintenance'])->default('Vacant')->index();
+            $table->date('status_until_date')->nullable();
+
+            $table->string('address_first_line')->nullable();
             $table->string('city')->nullable();
             $table->string('postcode')->nullable();
-            $table->enum('property_type', ['House', 'Flat', 'Apartment', 'Commercial'])->default('House');
-            $table->decimal('rent_amount', 10, 2)->nullable();
 
-            // Additional new requested details
+            $table->string('emergency_contact')->nullable();
+
+            // Representative Details
             $table->string('representative_name')->nullable();
+            $table->string('representative_contact')->nullable();
             $table->string('representative_authorisation')->nullable();
-            $table->string('representative_emergency_contact')->nullable();
+            $table->string('representative_authorisation_file')->nullable();
 
-            // Service technician details
-            $table->string('technician_name')->nullable();
-            $table->string('technician_phone')->nullable();
-            $table->string('technician_email')->nullable();
+            // Service Agreement
+            $table->string('service_type')->nullable();
+            $table->decimal('management_fee', 5, 2)->nullable();
+            $table->date('agreement_date')->nullable();
+            $table->integer('agreement_duration')->nullable();
 
-            // Status
-            $table->enum('status', ['Vacant', 'Occupied', 'Maintenance'])->default('Vacant');
+            // Service Technician Details as JSON
+            $table->json('technicians')->nullable();
+
             $table->timestamps();
         });
     }
