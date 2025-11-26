@@ -12,64 +12,127 @@ class LandlordController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
+
             $landlords = Landlord::select([
                 'id',
                 'name',
+                'company_name',
                 'email',
                 'phone',
-                'service_type',
-                'management_fee',
-                'agreement_due_date',
-                'status',
-                'reference_checked',
-                'right_to_rent_status'
+                'postcode',
+                'correspondence_address',
+                'proof_of_id',
+                'authorisation_letter',
+                'landlord_agent_agreement',
+                'bank_name',
+                'account_number',
+                'sort_code',
+                'status'
             ])->orderBy('id', 'desc');
 
             return DataTables::of($landlords)
                 ->addIndexColumn()
-                ->addColumn('service_type', function ($row) {
-                    $badge_class = [
-                        'Full Management' => 'bg-success',
-                        'Rent Collection' => 'bg-info',
-                        'Tenant Finding' => 'bg-warning'
-                    ][$row->service_type] ?? 'bg-secondary';
 
-                    return '<span class="badge ' . $badge_class . '">' . ($row->service_type ?? 'N/A') . '</span>';
-                })
-                ->addColumn('management_fee', function ($row) {
-                    return $row->management_fee
-                        ? number_format($row->management_fee, 0) . '%'
-                        : '';
-                })
-                ->addColumn('agreement_due_date', function ($row) {
-                    return $row->agreement_due_date ? date('d M, Y', strtotime($row->agreement_due_date)) : '';
-                })
-                ->addColumn('reference_status', function ($row) {
-                    $badge_class = [
-                        'yes' => 'bg-success',
-                        'no' => 'bg-danger',
-                        'processing' => 'bg-warning'
-                    ][$row->reference_checked] ?? 'bg-secondary';
+                /* ---------------------------
+                LANDLORD COLUMN
+                ---------------------------- */
+                ->addColumn('landlord', function ($row) {
+                    $html = '';
 
-                    return '<span class="badge ' . $badge_class . '">' . ucfirst($row->reference_checked) . '</span>';
-                })
-                ->addColumn('right_to_rent', function ($row) {
-                    $badge_class = [
-                        'verified' => 'bg-success',
-                        'not_verified' => 'bg-danger',
-                        'pending' => 'bg-warning'
-                    ][$row->right_to_rent_status] ?? 'bg-secondary';
+                    if ($row->name) {
+                        $html .= '<strong>' . e($row->name) . '</strong><br>';
+                    }
+                    if ($row->company_name) {
+                        $html .= e($row->company_name) . '<br>';
+                    }
+                    if ($row->email) {
+                        $html .= e($row->email) . '<br>';
+                    }
+                    if ($row->phone) {
+                        $html .= e($row->phone);
+                    }
 
-                    return '<span class="badge ' . $badge_class . '">' . ucfirst(str_replace('_', ' ', $row->right_to_rent_status)) . '</span>';
+                    return $html ?: 'N/A';
                 })
+
+                /* ---------------------------
+                ADDRESS COLUMN
+                ---------------------------- */
+                ->addColumn('address', function ($row) {
+                    $html = '';
+
+                    if ($row->postcode) {
+                        $html .= '<strong>Post:</strong> ' . e($row->postcode) . '<br>';
+                    }
+                    if ($row->correspondence_address) {
+                        $html .= '<strong>Address:</strong> ' . e($row->correspondence_address);
+                    }
+
+                    return $html ?: 'N/A';
+                })
+
+                /* ---------------------------
+                COMPLIANCE COLUMN
+                ---------------------------- */
+                ->addColumn('compliance', function ($row) {
+
+                    $output = '';
+
+                    if ($row->proof_of_id) {
+                        $output .= '<a href="' . asset($row->proof_of_id) . '" target="_blank" class="d-block text-primary">
+                                        Proof of ID
+                                    </a>';
+                    }
+
+                    if ($row->authorisation_letter) {
+                        $output .= '<a href="' . asset($row->authorisation_letter) . '" target="_blank" class="d-block text-primary">
+                                        Authorization Letter
+                                    </a>';
+                    }
+
+                    if ($row->landlord_agent_agreement) {
+                        $output .= '<a href="' . asset($row->landlord_agent_agreement) . '" target="_blank" class="d-block text-primary">
+                                        Agreement Document
+                                    </a>';
+                    }
+
+                    return $output ?: 'N/A';
+                })
+
+                /* ---------------------------
+                BANK DETAILS COLUMN
+                ---------------------------- */
+                ->addColumn('bank_details', function ($row) {
+
+                    $html = '';
+
+                    if ($row->bank_name) {
+                        $html .= '<strong>Bank:</strong> ' . e($row->bank_name) . '<br>';
+                    }
+                    if ($row->account_number) {
+                        $html .= '<strong>Account:</strong> ' . e($row->account_number) . '<br>';
+                    }
+                    if ($row->sort_code) {
+                        $html .= '<strong>Sort Code:</strong> ' . e($row->sort_code);
+                    }
+
+                    return $html ?: 'N/A';
+                })
+
+                /* ---------------------------
+                STATUS SWITCH
+                ---------------------------- */
                 ->addColumn('status', function ($row) {
-                    $checked = $row->status == 1 ? 'checked' : '';
+                    $checked = $row->status ? 'checked' : '';
                     return '<div class="form-check form-switch" dir="ltr">
                                 <input type="checkbox" class="form-check-input toggle-status" 
-                                      id="customSwitchStatus' . $row->id . '" data-id="' . $row->id . '" ' . $checked . '>
-                                <label class="form-check-label" for="customSwitchStatus' . $row->id . '"></label>
+                                    data-id="' . $row->id . '" ' . $checked . '>
                             </div>';
                 })
+
+                /* ---------------------------
+                ACTIONS
+                ---------------------------- */
                 ->addColumn('action', function ($row) {
                     return '
                         <div class="dropdown">
@@ -83,11 +146,13 @@ class LandlordController extends Controller
                                         <i class="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit
                                     </button>
                                 </li>
+
                                 <li class="dropdown-divider"></li>
+
                                 <li>
-                                    <button class="dropdown-item deleteBtn" 
-                                            data-delete-url="' . route('landlord.delete', $row->id) . '" 
-                                            data-method="DELETE" 
+                                    <button class="dropdown-item deleteBtn"
+                                            data-delete-url="' . route('landlord.delete', $row->id) . '"
+                                            data-method="DELETE"
                                             data-table="#landlordTable">
                                         <i class="ri-delete-bin-fill align-bottom me-2 text-muted"></i> Delete
                                     </button>
@@ -96,7 +161,8 @@ class LandlordController extends Controller
                         </div>
                     ';
                 })
-                ->rawColumns(['service_type', 'status', 'reference_status', 'right_to_rent', 'action'])
+
+                ->rawColumns(['landlord', 'address', 'compliance', 'bank_details', 'status', 'action'])
                 ->make(true);
         }
 
@@ -109,82 +175,71 @@ class LandlordController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:landlords,email',
             'phone' => 'required',
-            'address' => 'required',
+            'postcode' => 'required',
+            'correspondence_address' => 'required',
+
+            // File validations (max 5MB)
+            'proof_of_id' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'authorisation_letter' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'landlord_agent_agreement' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+
+            // Bank
             'bank_name' => 'nullable',
             'account_number' => 'nullable',
             'sort_code' => 'nullable',
-            'service_type' => 'nullable|in:Full Management,Rent Collection,Tenant Finding',
-            'management_fee' => 'nullable|numeric|min:0|max:100',
-            'agreement_date' => 'nullable|date',
-            'agreement_duration' => 'nullable|integer|min:1',
-            // New fields validation
-            'current_address' => 'nullable',
-            'previous_address' => 'nullable',
-            'emergency_contact_name' => 'nullable',
-            'emergency_contact_phone' => 'nullable',
-            'emergency_contact_relation' => 'nullable',
-            'reference_checked' => 'nullable|in:yes,no,processing',
-            'credit_score' => 'nullable',
-            'previous_landlord_reference' => 'nullable',
-            'personal_reference' => 'nullable',
-            'right_to_rent_status' => 'nullable|in:verified,not_verified,pending',
-            'right_to_rent_check_date' => 'nullable|date'
         ]);
 
-        $data = new Landlord;
+        $data = new Landlord();
         $data->name = $request->name;
+        $data->company_name = $request->company_name;
         $data->email = $request->email;
         $data->phone = $request->phone;
-        $data->address = $request->address;
+        $data->postcode = $request->postcode;
+        $data->correspondence_address = $request->correspondence_address;
+
+        // Bank
         $data->bank_name = $request->bank_name;
         $data->account_number = $request->account_number;
         $data->sort_code = $request->sort_code;
-        $data->service_type = $request->service_type;
-        $data->management_fee = $request->management_fee;
-        $data->agreement_date = $request->agreement_date;
-        $data->agreement_duration = $request->agreement_duration;
 
-        // New tenant fields
-        $data->current_address = $request->current_address;
-        $data->previous_address = $request->previous_address;
-        $data->emergency_contact_name = $request->emergency_contact_name;
-        $data->emergency_contact_phone = $request->emergency_contact_phone;
-        $data->emergency_contact_relation = $request->emergency_contact_relation;
-        $data->reference_checked = $request->reference_checked;
-        $data->credit_score = $request->credit_score;
-        $data->previous_landlord_reference = $request->previous_landlord_reference;
-        $data->personal_reference = $request->personal_reference;
-        $data->right_to_rent_status = $request->right_to_rent_status;
-        $data->right_to_rent_check_date = $request->right_to_rent_check_date;
+        /* ---------------------------------------------------
+            FILE UPLOADS (store as: /uploads/landlords/xxxx.pdf)
+        --------------------------------------------------- */
+        $uploadPath = 'uploads/landlords/';
 
-        if ($request->agreement_date && $request->agreement_duration) {
-            $data->agreement_due_date = date(
-                'Y-m-d',
-                strtotime("{$request->agreement_date} +{$request->agreement_duration} months")
-            );
-        } else {
-            $data->agreement_due_date = null;
+        if ($request->hasFile('proof_of_id')) {
+            $file = $request->file('proof_of_id');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->proof_of_id = '/' . $uploadPath . $filename;
         }
 
-        if ($data->save()) {
-            return response()->json([
-                'message' => 'Landlord created successfully!',
-                'landlord' => $data
-            ], 200);
+        if ($request->hasFile('authorisation_letter')) {
+            $file = $request->file('authorisation_letter');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->authorisation_letter = '/' . $uploadPath . $filename;
         }
+
+        if ($request->hasFile('landlord_agent_agreement')) {
+            $file = $request->file('landlord_agent_agreement');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->landlord_agent_agreement = '/' . $uploadPath . $filename;
+        }
+
+        // Save
+        $data->save();
 
         return response()->json([
-            'message' => 'Server error while creating landlord.'
-        ], 500);
+            'message' => 'Landlord created successfully!',
+            'landlord' => $data
+        ], 200);
     }
 
     public function edit($id)
     {
-        $where = [
-            'id' => $id
-        ];
-        $info = Landlord::where($where)->get()->first();
-        return response()->json($info);
+        return response()->json(Landlord::find($id));
     }
 
     public function update(Request $request)
@@ -193,72 +248,70 @@ class LandlordController extends Controller
             'name' => 'required',
             'email' => 'required|email|unique:landlords,email,' . $request->codeid,
             'phone' => 'required',
-            'address' => 'required',
+            'postcode' => 'required',
+            'correspondence_address' => 'required',
+            'proof_of_id' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'authorisation_letter' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'landlord_agent_agreement' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
             'bank_name' => 'nullable',
             'account_number' => 'nullable',
             'sort_code' => 'nullable',
-            'service_type' => 'nullable|in:Full Management,Rent Collection,Tenant Finding',
-            'management_fee' => 'nullable|numeric|min:0|max:100',
-            'agreement_date' => 'nullable|date',
-            'agreement_duration' => 'nullable|integer|min:1',
-            // New fields validation
-            'current_address' => 'nullable',
-            'previous_address' => 'nullable',
-            'emergency_contact_name' => 'nullable',
-            'emergency_contact_phone' => 'nullable',
-            'emergency_contact_relation' => 'nullable',
-            'reference_checked' => 'nullable|in:yes,no,processing',
-            'credit_score' => 'nullable',
-            'previous_landlord_reference' => 'nullable',
-            'personal_reference' => 'nullable',
-            'right_to_rent_status' => 'nullable|in:verified,not_verified,pending',
-            'right_to_rent_check_date' => 'nullable|date'
         ]);
 
         $data = Landlord::findOrFail($request->codeid);
         $data->name = $request->name;
+        $data->company_name = $request->company_name;
         $data->email = $request->email;
         $data->phone = $request->phone;
-        $data->address = $request->address;
+        $data->postcode = $request->postcode;
+        $data->correspondence_address = $request->correspondence_address;
+
+        // Bank
         $data->bank_name = $request->bank_name;
         $data->account_number = $request->account_number;
         $data->sort_code = $request->sort_code;
-        $data->service_type = $request->service_type;
-        $data->management_fee = $request->management_fee;
-        $data->agreement_date = $request->agreement_date;
-        $data->agreement_duration = $request->agreement_duration;
 
-        // New tenant fields
-        $data->current_address = $request->current_address;
-        $data->previous_address = $request->previous_address;
-        $data->emergency_contact_name = $request->emergency_contact_name;
-        $data->emergency_contact_phone = $request->emergency_contact_phone;
-        $data->emergency_contact_relation = $request->emergency_contact_relation;
-        $data->reference_checked = $request->reference_checked;
-        $data->credit_score = $request->credit_score;
-        $data->previous_landlord_reference = $request->previous_landlord_reference;
-        $data->personal_reference = $request->personal_reference;
-        $data->right_to_rent_status = $request->right_to_rent_status;
-        $data->right_to_rent_check_date = $request->right_to_rent_check_date;
+        $uploadPath = 'uploads/landlords/';
 
-        if ($request->agreement_date && $request->agreement_duration) {
-            $data->agreement_due_date = date(
-                'Y-m-d',
-                strtotime("{$request->agreement_date} +{$request->agreement_duration} months")
-            );
-        } else {
-            $data->agreement_due_date = null;
+        // Proof of ID
+        if ($request->hasFile('proof_of_id')) {
+            if ($data->proof_of_id && file_exists(public_path($data->proof_of_id))) {
+                unlink(public_path($data->proof_of_id));
+            }
+            $file = $request->file('proof_of_id');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->proof_of_id = '/' . $uploadPath . $filename;
         }
 
-        if ($data->save()) {
-            return response()->json([
-                'message' => 'Landlord updated successfully!'
-            ], 200);
+        // Authorisation Letter
+        if ($request->hasFile('authorisation_letter')) {
+            if ($data->authorisation_letter && file_exists(public_path($data->authorisation_letter))) {
+                unlink(public_path($data->authorisation_letter));
+            }
+            $file = $request->file('authorisation_letter');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->authorisation_letter = '/' . $uploadPath . $filename;
         }
+
+        // Landlord-Agent Agreement
+        if ($request->hasFile('landlord_agent_agreement')) {
+            if ($data->landlord_agent_agreement && file_exists(public_path($data->landlord_agent_agreement))) {
+                unlink(public_path($data->landlord_agent_agreement));
+            }
+            $file = $request->file('landlord_agent_agreement');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path($uploadPath), $filename);
+            $data->landlord_agent_agreement = '/' . $uploadPath . $filename;
+        }
+
+        $data->save();
 
         return response()->json([
-            'message' => 'Failed to update landlord. Please try again.'
-        ], 500);
+            'message' => 'Landlord updated successfully!',
+            'landlord' => $data
+        ], 200);
     }
 
     public function delete($id)
@@ -269,6 +322,13 @@ class LandlordController extends Controller
             return response()->json([
                 'message' => 'Landlord not found.'
             ], 404);
+        }
+
+        // Remove uploaded files if they exist
+        foreach (['proof_of_id', 'authorisation_letter', 'landlord_agent_agreement'] as $fileField) {
+            if ($data->$fileField && file_exists(public_path($data->$fileField))) {
+                unlink(public_path($data->$fileField));
+            }
         }
 
         if ($data->delete()) {

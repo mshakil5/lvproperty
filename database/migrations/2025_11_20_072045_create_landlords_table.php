@@ -15,47 +15,31 @@ return new class extends Migration
             $table->id();
              // Basic profile
             $table->string('name')->nullable();
+            $table->string('company_name')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
-            $table->text('address')->nullable();            // permanent address
-            $table->text('current_address')->nullable();
-            $table->text('previous_address')->nullable();
+            $table->string('postcode')->nullable();
+            $table->text('correspondence_address')->nullable();
 
-            // Bank details
+            // Compliance (File uploads)
+            $table->string('proof_of_id')->nullable();
+            $table->string('authorisation_letter')->nullable();
+            $table->string('landlord_agent_agreement')->nullable();
+
+            // Bank Details
             $table->string('bank_name')->nullable();
             $table->string('account_number')->nullable();
             $table->string('sort_code')->nullable();
 
-            // Emergency contact
-            $table->string('emergency_contact_name')->nullable();
-            $table->string('emergency_contact_phone')->nullable();
-            $table->string('emergency_contact_relation')->nullable();
-
-            // References
-            $table->enum('reference_checked', ['yes', 'no', 'processing'])->default('no');
-            $table->string('credit_score')->nullable();
-            $table->text('previous_landlord_reference')->nullable();
-            $table->text('personal_reference')->nullable();
-
-            // Immigration / Right to rent
-            $table->enum('right_to_rent_status', ['verified', 'not_verified', 'pending'])->default('pending');
-            $table->date('right_to_rent_check_date')->nullable();
-
-            // Landlord specific fields
-            $table->enum('service_type', ['Full Management', 'Rent Collection', 'Tenant Finding'])->nullable();
-            $table->decimal('management_fee', 5, 2)->nullable();
-            $table->date('agreement_date')->nullable();
-            $table->integer('agreement_duration')->nullable();
-            $table->date('agreement_due_date')->nullable();
-
             // Status
             $table->boolean('status')->default(true);
+
             $table->timestamps();
 
             // Indexes
             $table->index('email');
-            $table->index('status');
-            $table->index('agreement_due_date');
+            $table->index('phone');
+            $table->index('postcode');
         });
     }
 

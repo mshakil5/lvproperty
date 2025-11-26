@@ -32,90 +32,52 @@
                                 </div>
 
                                 <div class="col-md-4">
+                                    <label class="form-label">Company Name </label>
+                                    <input type="text" class="form-control" id="company_name" name="company_name" placeholder="">
+                                </div>
+
+                                <div class="col-md-4">
                                     <label class="form-label">Email <span class="text-danger">*</span></label>
                                     <input type="email" class="form-control" id="email" name="email" placeholder="">
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Phone <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="phone" name="phone" placeholder="">
                                 </div>
 
-                                <div class="col-md-4">
-                                    <label class="form-label">Current Address</label>
-                                    <textarea class="form-control" id="current_address" name="current_address" rows="2" placeholder=""></textarea>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Permanent Address <span class="text-danger">*</span></label>
-                                    <textarea class="form-control" id="address" name="address" rows="2" placeholder=""></textarea>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Previous Address</label>
-                                    <textarea class="form-control" id="previous_address" name="previous_address" rows="2" placeholder=""></textarea>
-                                </div>
-                            </div>
-
-                            <hr class="my-4 d-none">
-                            <h5 class="mb-3 d-none">Emergency Contact</h5>
-                            <div class="row g-3 d-none">
-                                <div class="col-md-4">
-                                    <label class="form-label">Emergency Contact Name</label>
-                                    <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" placeholder="">
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Emergency Contact Phone</label>
-                                    <input type="text" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" placeholder="">
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Relation</label>
-                                    <input type="text" class="form-control" id="emergency_contact_relation" name="emergency_contact_relation" placeholder="">
-                                </div>
-                            </div>
-
-                            <hr class="my-4 d-none">
-                            <h5 class="mb-3 d-none">References & Verification</h5>
-                            <div class="row g-3 d-none">
-                                <div class="col-md-4">
-                                    <label class="form-label">Reference Checked</label>
-                                    <select class="form-control" id="reference_checked" name="reference_checked">
-                                        <option value="no">No</option>
-                                        <option value="yes">Yes</option>
-                                        <option value="processing">Processing</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Credit Score</label>
-                                    <input type="text" class="form-control" id="credit_score" name="credit_score" placeholder="">
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Right to Rent Status</label>
-                                    <select class="form-control" id="right_to_rent_status" name="right_to_rent_status">
-                                        <option value="pending">Pending</option>
-                                        <option value="verified">Verified</option>
-                                        <option value="not_verified">Not Verified</option>
-                                    </select>
+                                <div class="col-md-3">
+                                    <label class="form-label">Postcode <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="postcode" name="postcode" placeholder="">
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Right to Rent Check Date</label>
-                                    <input type="date" class="form-control" id="right_to_rent_check_date" name="right_to_rent_check_date">
+                                    <label class="form-label">Correspondence Address <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="correspondence_address" name="correspondence_address" rows="2" placeholder=""></textarea>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+                            <h5 class="mb-3">Compliance</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Proof of ID (Max Size: 5MB)</label>
+                                    <input type="file" class="form-control" id="proof_of_id" name="proof_of_id" accept=".pdf,.jpg,.jpeg,.png">
+                                    <div id="proof_of_id_link" class="mt-1"></div>
                                 </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Previous Landlord Reference</label>
-                                    <textarea class="form-control" id="previous_landlord_reference" name="previous_landlord_reference" rows="2" placeholder=""></textarea>
+                                <div class="col-md-4">
+                                    <label class="form-label">Authorisation Letter (Max Size: 5MB)</label>
+                                    <input type="file" class="form-control" id="authorisation_letter" name="authorisation_letter" accept=".pdf,.jpg,.jpeg,.png">
+                                    <div id="authorisation_letter_link" class="mt-1"></div>
                                 </div>
 
-                                <div class="col-md-12">
-                                    <label class="form-label">Personal Reference</label>
-                                    <textarea class="form-control" id="personal_reference" name="personal_reference" rows="2" placeholder=""></textarea>
+                                <div class="col-md-4">
+                                    <label class="form-label">Agreement Between Landlord and Agent (Max Size: 5MB)</label>
+                                    <input type="file" class="form-control" id="landlord_agent_agreement" name="landlord_agent_agreement" accept=".pdf,.jpg,.jpeg,.png">
+                                    <div id="landlord_agent_agreement_link" class="mt-1"></div>
                                 </div>
+
                             </div>
 
                             <hr class="my-4">
@@ -134,35 +96,6 @@
                                 <div class="col-md-4">
                                     <label class="form-label">Sort Code</label>
                                     <input type="text" class="form-control" id="sort_code" name="sort_code" placeholder="">
-                                </div>
-                            </div>
-
-                            <hr class="my-4">
-                            <h5 class="mb-3">Service Agreement</h5>
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Service Type</label>
-                                    <select class="form-control" id="service_type" name="service_type">
-                                        <option value="">Select Service Type</option>
-                                        <option value="Full Management">Full Management</option>
-                                        <option value="Rent Collection">Rent Collection</option>
-                                        <option value="Tenant Finding">Tenant Finding</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label class="form-label">Management Fee (%)</label>
-                                    <input type="number" step="0.01" class="form-control" id="management_fee" name="management_fee" placeholder="">
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label class="form-label">Agreement Date</label>
-                                    <input type="date" class="form-control" id="agreement_date" name="agreement_date">
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label class="form-label">Agreement Duration (Months)</label>
-                                    <input type="number" class="form-control" id="agreement_duration" name="agreement_duration" placeholder="">
                                 </div>
                             </div>
                         </form>
@@ -190,14 +123,10 @@
                     <thead>
                         <tr>
                             <th>Sl</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Service Type</th>
-                            <th>Management Fee</th>
-                            {{-- <th>Reference Status</th>
-                            <th>Right to Rent</th> --}}
-                            <th>Agreement Due Date</th>
+                            <th>Landlord</th>
+                            <th>Address</th>
+                            <th>Compliance</th>
+                            <th>Bank Details</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -215,69 +144,15 @@
         $('#landlordTable').DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 25,
             ajax: "{{ route('alllandlord') }}",
             columns: [
-                {
-                    data: 'DT_RowIndex',
-                    name: 'DT_RowIndex',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'name',
-                    name: 'name'
-                },
-                {
-                    data: 'email',
-                    name: 'email'
-                },
-                {
-                    data: 'phone',
-                    name: 'phone'
-                },
-                {
-                    data: 'service_type',
-                    name: 'service_type',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'management_fee',
-                    name: 'management_fee',
-                    orderable: false,
-                    searchable: false
-                },
-                // {
-                //     data: 'reference_status',
-                //     name: 'reference_status',
-                //     orderable: false,
-                //     searchable: false
-                // },
-                // {
-                //     data: 'right_to_rent',
-                //     name: 'right_to_rent',
-                //     orderable: false,
-                //     searchable: false
-                // },
-                {
-                    data: 'agreement_due_date',
-                    name: 'agreement_due_date',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'status',
-                    name: 'status',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'action',
-                    name: 'action',
-                    orderable: false,
-                    searchable: false
-                }
+                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                { data: 'landlord', name: 'name' }, 
+                { data: 'address', name: 'postcode' },
+                { data: 'compliance', name: 'proof_of_id' },
+                { data: 'bank_details', name: 'bank_name' },
+                { data: 'status', name: 'status', orderable: false, searchable: false },
+                { data: 'action', name: 'action', orderable: false, searchable: false },
             ]
         });
 
@@ -331,40 +206,32 @@
         var upurl = "{{ URL::to('/admin/landlord-update') }}";
 
         $("#addBtn").click(function() {
-            //create
+            // Create
             if ($(this).val() == 'Create') {
                 var form_data = new FormData();
                 // Basic Information
                 form_data.append("name", $("#name").val());
+                form_data.append("company_name", $("#company_name").val());
                 form_data.append("email", $("#email").val());
                 form_data.append("phone", $("#phone").val());
-                form_data.append("address", $("#address").val());
-                form_data.append("current_address", $("#current_address").val());
-                form_data.append("previous_address", $("#previous_address").val());
+                form_data.append("postcode", $("#postcode").val());
+                form_data.append("correspondence_address", $("#correspondence_address").val());
                 
-                // Emergency Contact
-                form_data.append("emergency_contact_name", $("#emergency_contact_name").val());
-                form_data.append("emergency_contact_phone", $("#emergency_contact_phone").val());
-                form_data.append("emergency_contact_relation", $("#emergency_contact_relation").val());
-                
-                // References & Verification
-                form_data.append("reference_checked", $("#reference_checked").val());
-                form_data.append("credit_score", $("#credit_score").val());
-                form_data.append("previous_landlord_reference", $("#previous_landlord_reference").val());
-                form_data.append("personal_reference", $("#personal_reference").val());
-                form_data.append("right_to_rent_status", $("#right_to_rent_status").val());
-                form_data.append("right_to_rent_check_date", $("#right_to_rent_check_date").val());
+                // Compliance - File uploads
+                if ($("#proof_of_id")[0].files[0]) {
+                    form_data.append("proof_of_id", $("#proof_of_id")[0].files[0]);
+                }
+                if ($("#authorisation_letter")[0].files[0]) {
+                    form_data.append("authorisation_letter", $("#authorisation_letter")[0].files[0]);
+                }
+                if ($("#landlord_agent_agreement")[0].files[0]) {
+                    form_data.append("landlord_agent_agreement", $("#landlord_agent_agreement")[0].files[0]);
+                }
                 
                 // Bank Details
                 form_data.append("bank_name", $("#bank_name").val());
                 form_data.append("account_number", $("#account_number").val());
                 form_data.append("sort_code", $("#sort_code").val());
-                
-                // Service Agreement
-                form_data.append("service_type", $("#service_type").val());
-                form_data.append("management_fee", $("#management_fee").val());
-                form_data.append("agreement_date", $("#agreement_date").val());
-                form_data.append("agreement_duration", $("#agreement_duration").val());
 
                 $.ajax({
                     url: url,
@@ -392,42 +259,34 @@
                     }
                 });
             }
-            //create  end
+            // Create end
 
-            //Update
+            // Update
             if ($(this).val() == 'Update') {
                 var form_data = new FormData();
                 // Basic Information
                 form_data.append("name", $("#name").val());
+                form_data.append("company_name", $("#company_name").val());
                 form_data.append("email", $("#email").val());
                 form_data.append("phone", $("#phone").val());
-                form_data.append("address", $("#address").val());
-                form_data.append("current_address", $("#current_address").val());
-                form_data.append("previous_address", $("#previous_address").val());
+                form_data.append("postcode", $("#postcode").val());
+                form_data.append("correspondence_address", $("#correspondence_address").val());
                 
-                // Emergency Contact
-                form_data.append("emergency_contact_name", $("#emergency_contact_name").val());
-                form_data.append("emergency_contact_phone", $("#emergency_contact_phone").val());
-                form_data.append("emergency_contact_relation", $("#emergency_contact_relation").val());
-                
-                // References & Verification
-                form_data.append("reference_checked", $("#reference_checked").val());
-                form_data.append("credit_score", $("#credit_score").val());
-                form_data.append("previous_landlord_reference", $("#previous_landlord_reference").val());
-                form_data.append("personal_reference", $("#personal_reference").val());
-                form_data.append("right_to_rent_status", $("#right_to_rent_status").val());
-                form_data.append("right_to_rent_check_date", $("#right_to_rent_check_date").val());
+                // Compliance - File uploads
+                if ($("#proof_of_id")[0].files[0]) {
+                    form_data.append("proof_of_id", $("#proof_of_id")[0].files[0]);
+                }
+                if ($("#authorisation_letter")[0].files[0]) {
+                    form_data.append("authorisation_letter", $("#authorisation_letter")[0].files[0]);
+                }
+                if ($("#landlord_agent_agreement")[0].files[0]) {
+                    form_data.append("landlord_agent_agreement", $("#landlord_agent_agreement")[0].files[0]);
+                }
                 
                 // Bank Details
                 form_data.append("bank_name", $("#bank_name").val());
                 form_data.append("account_number", $("#account_number").val());
                 form_data.append("sort_code", $("#sort_code").val());
-                
-                // Service Agreement
-                form_data.append("service_type", $("#service_type").val());
-                form_data.append("management_fee", $("#management_fee").val());
-                form_data.append("agreement_date", $("#agreement_date").val());
-                form_data.append("agreement_duration", $("#agreement_duration").val());
                 form_data.append("codeid", $("#codeid").val());
 
                 $.ajax({
@@ -458,10 +317,10 @@
                     }
                 });
             }
-            //Update  end
+            // Update end
         });
 
-        //Edit
+        // Edit
         $("#contentContainer").on('click', '#EditBtn', function() {
             $("#cardTitle").text('Update this data');
             codeid = $(this).attr('rid');
@@ -471,41 +330,39 @@
                 pagetop();
             });
         });
-        //Edit  end 
+        // Edit end 
 
         function populateForm(data) {
-            console.log(data);
+            // console.log(data);
             // Basic Information
             $("#name").val(data.name);
+            $("#company_name").val(data.company_name);
             $("#email").val(data.email);
             $("#phone").val(data.phone);
-            $("#address").val(data.address);
-            $("#current_address").val(data.current_address);
-            $("#previous_address").val(data.previous_address);
-            
-            // Emergency Contact
-            $("#emergency_contact_name").val(data.emergency_contact_name);
-            $("#emergency_contact_phone").val(data.emergency_contact_phone);
-            $("#emergency_contact_relation").val(data.emergency_contact_relation);
-            
-            // References & Verification
-            $("#reference_checked").val(data.reference_checked);
-            $("#credit_score").val(data.credit_score);
-            $("#previous_landlord_reference").val(data.previous_landlord_reference);
-            $("#personal_reference").val(data.personal_reference);
-            $("#right_to_rent_status").val(data.right_to_rent_status);
-            $("#right_to_rent_check_date").val(data.right_to_rent_check_date);
+            $("#postcode").val(data.postcode);
+            $("#correspondence_address").val(data.correspondence_address);
             
             // Bank Details
             $("#bank_name").val(data.bank_name);
             $("#account_number").val(data.account_number);
             $("#sort_code").val(data.sort_code);
             
-            // Service Agreement
-            $("#service_type").val(data.service_type);
-            $("#management_fee").val(data.management_fee);
-            $("#agreement_date").val(data.agreement_date);
-            $("#agreement_duration").val(data.agreement_duration);
+            // Compliance
+            if (data.proof_of_id) {
+                $("#proof_of_id_link").html('<a href="'+data.proof_of_id+'" target="_blank">View Proof of ID</a>');
+            } else {
+                $("#proof_of_id_link").html('');
+            }
+            if (data.authorisation_letter) {
+                $("#authorisation_letter_link").html('<a href="'+data.authorisation_letter+'" target="_blank">View Authorisation Letter</a>');
+            } else {
+                $("#authorisation_letter_link").html('');
+            }
+            if (data.landlord_agent_agreement) {
+                $("#landlord_agent_agreement_link").html('<a href="'+data.landlord_agent_agreement+'" target="_blank">View Landlord Agent Agreement</a>');
+            } else {
+                $("#landlord_agent_agreement_link").html('');
+            }
             
             $("#codeid").val(data.id);
             $("#addBtn").val('Update');
@@ -519,6 +376,9 @@
             $("#addBtn").val('Create');
             $("#addBtn").html('Create');
             $("#cardTitle").text('Add new Landlord');
+            $("#proof_of_id_link").html('');
+            $("#authorisation_letter_link").html('');
+            $("#landlord_agent_agreement_link").html('');
         }
     });
 </script>
