@@ -120,12 +120,6 @@
 
         // Initialize Select2 when document is ready
         $(document).ready(function() {
-            // Initialize Select2 for parent category dropdown
-            $('.select2').select2({
-                placeholder: "Select Parent Category",
-                allowClear: true,
-                width: '100%'
-            });
 
             $('#categoryTable').DataTable({
                 processing: true,
