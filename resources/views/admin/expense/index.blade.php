@@ -116,7 +116,7 @@
             var status = $(this).prop('checked') ? 1 : 0;
 
             $.ajax({
-                url: '/admin/expense-status',
+                url: "{{ route('expense-category-status') }}", // Fixed route name
                 method: "POST",
                 data: {
                     id: expense_id,
@@ -157,8 +157,9 @@
             }
         });
 
-        var url = "{{ URL::to('/admin/expense') }}";
-        var upurl = "{{ URL::to('/admin/expense-update') }}";
+        // Fixed URLs to match route definitions
+        var url = "{{ route('expense.store') }}"; // Changed to use named route
+        var upurl = "{{ URL::to('/admin/expense-category-update') }}"; // Fixed URL
 
         $("#addBtn").click(function() {
             //create
@@ -233,11 +234,11 @@
             //Update  end
         });
 
-        //Edit
+        //Edit - Fixed URL
         $("#contentContainer").on('click', '#EditBtn', function() {
             $("#cardTitle").text('Update Expense');
             codeid = $(this).attr('rid');
-            info_url = url + '/' + codeid + '/edit';
+            info_url = "{{ URL::to('/admin/expense-category') }}/" + codeid + "/edit"; // Fixed URL
             $.get(info_url, {}, function(d) {
                 populateForm(d);
                 pagetop();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Expense;
+use App\Models\Property;
 use DataTables;
 use Illuminate\Support\Facades\DB;
 
@@ -14,9 +15,9 @@ class ExpenseTransactionController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $expenses = Transaction::with(['expense'])
+            $expenses = Transaction::with(['expense', 'property'])
                 ->whereNotNull('expense_id')
-                ->select(['id', 'tran_id', 'date', 'expense_id', 'amount', 'payment_type', 'description', 'status'])
+                ->select(['id', 'tran_id', 'date', 'expense_id', 'property_id', 'amount', 'description', 'status'])
                 ->orderBy('id', 'desc');
 
             return DataTables::of($expenses)
@@ -24,21 +25,14 @@ class ExpenseTransactionController extends Controller
                 ->addColumn('expense_name', function ($row) {
                     return $row->expense ? $row->expense->name : '<span class="text-muted">N/A</span>';
                 })
+                ->addColumn('property_reference', function ($row) {
+                    return $row->property ? $row->property->property_reference : '<span class="text-muted">N/A</span>';
+                })
                 ->addColumn('date', function ($row) {
                     return $row->date ? date('d M, Y', strtotime($row->date)) : 'N/A';
                 })
                 ->addColumn('amount', function ($row) {
                     return '£' . number_format($row->amount, 2);
-                })
-                ->addColumn('payment_type', function ($row) {
-                    $badge_class = [
-                        'cash' => 'bg-success',
-                        'bank' => 'bg-primary', 
-                        'card' => 'bg-info',
-                        'online' => 'bg-warning'
-                    ][$row->payment_type] ?? 'bg-secondary';
-                    
-                    return '<span class="badge '.$badge_class.'">'.ucfirst($row->payment_type).'</span>';
                 })
                 ->addColumn('status', function ($row) {
                     $checked = $row->status == 1 ? 'checked' : '';
@@ -73,21 +67,22 @@ class ExpenseTransactionController extends Controller
                         </div>
                     ';
                 })
-                ->rawColumns(['expense_name', 'amount', 'payment_type', 'status', 'action'])
+                ->rawColumns(['expense_name', 'property_reference', 'amount', 'status', 'action'])
                 ->make(true);
         }
 
         $expenseCategories = Expense::where('status', 1)->get();
-        return view('admin.expense-transaction.index', compact('expenseCategories'));
+        $properties = Property::where('status', 1)->get();
+        return view('admin.expense-transaction.index', compact('expenseCategories', 'properties'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'expense_id' => 'required|exists:expenses,id',
+            'property_id' => 'required|exists:properties,id',
             'date' => 'required|date',
             'amount' => 'required|numeric|min:0.01',
-            'payment_type' => 'required|in:cash,bank,card,online',
             'description' => 'nullable'
         ]);
 
@@ -97,11 +92,11 @@ class ExpenseTransactionController extends Controller
             $transaction->tran_id = 'EXP-' . time() . '-' . rand(1000, 9999);
             $transaction->date = $request->date;
             $transaction->expense_id = $request->expense_id;
+            $transaction->property_id = $request->property_id;
             $transaction->amount = $request->amount;
-            $transaction->payment_type = $request->payment_type;
             $transaction->transaction_type = 'payable'; // Money going out
             $transaction->description = $request->description;
-            $transaction->status = true;
+            $transaction->status = false;
 
             if ($transaction->save()) {
                 DB::commit();
@@ -121,7 +116,7 @@ class ExpenseTransactionController extends Controller
 
     public function edit($id)
     {
-        $transaction = Transaction::with(['expense'])->where('id', $id)->whereNotNull('expense_id')->first();
+        $transaction = Transaction::with(['expense', 'property'])->where('id', $id)->whereNotNull('expense_id')->first();
         return response()->json($transaction);
     }
 
@@ -129,9 +124,9 @@ class ExpenseTransactionController extends Controller
     {
         $request->validate([
             'expense_id' => 'required|exists:expenses,id',
+            'property_id' => 'required|exists:properties,id',
             'date' => 'required|date',
             'amount' => 'required|numeric|min:0.01',
-            'payment_type' => 'required|in:cash,bank,card,online',
             'description' => 'nullable'
         ]);
 
@@ -141,8 +136,8 @@ class ExpenseTransactionController extends Controller
             
             $transaction->date = $request->date;
             $transaction->expense_id = $request->expense_id;
+            $transaction->property_id = $request->property_id;
             $transaction->amount = $request->amount;
-            $transaction->payment_type = $request->payment_type;
             $transaction->description = $request->description;
 
             if ($transaction->save()) {

@@ -14,7 +14,7 @@
 
 <div class="container-fluid" id="addThisFormContainer" style="display: none;">
     <div class="row justify-content-center">
-        <div class="col-xl-6">
+        <div class="col-xl-8">
             <div class="card">
                 <div class="card-header align-items-center d-flex">
                     <h4 class="card-title mb-0 flex-grow-1" id="cardTitle">Add New Expense</h4>
@@ -27,10 +27,20 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Expense Category <span class="text-danger">*</span></label>
-                                <select class="form-control" id="expense_id" name="expense_id" required>
+                                <select class="form-control select2" id="expense_id" name="expense_id" required>
                                     <option value="">Select Category</option>
                                     @foreach($expenseCategories as $category)
                                         <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Select Property <span class="text-danger">*</span></label>
+                                <select class="form-control select2" id="property_id" name="property_id" required>
+                                    <option value="">Select Property</option>
+                                    @foreach($properties as $property)
+                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -43,16 +53,6 @@
                             <div class="col-md-6">
                                 <label class="form-label">Amount <span class="text-danger">*</span></label>
                                 <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="0.00" required>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Payment Type <span class="text-danger">*</span></label>
-                                <select class="form-control" id="payment_type" name="payment_type" required>
-                                    <option value="cash">Cash</option>
-                                    <option value="bank">Bank Transfer</option>
-                                    <option value="card">Card</option>
-                                    <option value="online">Online</option>
-                                </select>
                             </div>
 
                             <div class="col-12">
@@ -85,12 +85,10 @@
                 <thead>
                     <tr>
                         <th>Sl</th>
-                        <th>Transaction ID</th>
                         <th>Date</th>
-                        <th>Expense Category</th>
+                        <th>Expense</th>
+                        <th>Property</th>
                         <th>Amount</th>
-                        <th>Payment Type</th>
-                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -117,10 +115,6 @@
                     searchable: false
                 },
                 {
-                    data: 'tran_id',
-                    name: 'tran_id'
-                },
-                {
                     data: 'date',
                     name: 'date',
                     orderable: false
@@ -131,20 +125,14 @@
                     orderable: false
                 },
                 {
+                    data: 'property_reference',
+                    name: 'property_reference',
+                    orderable: false
+                },
+                {
                     data: 'amount',
                     name: 'amount',
                     orderable: false
-                },
-                {
-                    data: 'payment_type',
-                    name: 'payment_type',
-                    orderable: false
-                },
-                {
-                    data: 'status',
-                    name: 'status',
-                    orderable: false,
-                    searchable: false
                 },
                 {
                     data: 'action',
@@ -209,9 +197,9 @@
             if ($(this).val() == 'Create') {
                 var form_data = new FormData();
                 form_data.append("expense_id", $("#expense_id").val());
+                form_data.append("property_id", $("#property_id").val());
                 form_data.append("date", $("#date").val());
                 form_data.append("amount", $("#amount").val());
-                form_data.append("payment_type", $("#payment_type").val());
                 form_data.append("description", $("#description").val());
 
                 $.ajax({
@@ -246,9 +234,9 @@
             if ($(this).val() == 'Update') {
                 var form_data = new FormData();
                 form_data.append("expense_id", $("#expense_id").val());
+                form_data.append("property_id", $("#property_id").val());
                 form_data.append("date", $("#date").val());
                 form_data.append("amount", $("#amount").val());
-                form_data.append("payment_type", $("#payment_type").val());
                 form_data.append("description", $("#description").val());
                 form_data.append("codeid", $("#codeid").val());
 
@@ -296,10 +284,10 @@
         //Edit  end 
 
         function populateForm(data) {
-            $("#expense_id").val(data.expense_id);
+            $("#expense_id").val(data.expense_id).trigger('change');
+            $("#property_id").val(data.property_id).trigger('change');
             $("#date").val(data.date);
             $("#amount").val(data.amount);
-            $("#payment_type").val(data.payment_type);
             $("#description").val(data.description);
             $("#codeid").val(data.id);
             $("#addBtn").val('Update');
@@ -314,6 +302,9 @@
             $("#addBtn").val('Create');
             $("#addBtn").html('Create');
             $("#cardTitle").text('Add New Expense');
+            
+            // Clear Select2
+            $('.select2').val(null).trigger('change');
         }
     });
 </script>

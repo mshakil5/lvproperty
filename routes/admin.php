@@ -135,7 +135,6 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::get('/property-compliance/{id}/edit', [PropertyComplianceController::class, 'edit']);
     Route::post('/property-compliance-update', [PropertyComplianceController::class, 'update']);
     Route::delete('/property-compliance/{id}', [PropertyComplianceController::class, 'delete'])->name('property-compliance.delete');
-    Route::post('/property-compliance/receive-payment', [PropertyComplianceController::class, 'receivePayment'])->name('property-compliance.receive-payment');
 
     // Expense crud
     Route::get('/expense-category', [ExpenseController::class, 'index'])->name('allexpense');
@@ -143,7 +142,7 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::get('/expense-category/{id}/edit', [ExpenseController::class, 'edit']);
     Route::post('/expense-category-update', [ExpenseController::class, 'update']);
     Route::delete('/expense-category/{id}', [ExpenseController::class, 'delete'])->name('expense.delete');
-    Route::post('/expense-category-status', [ExpenseController::class, 'toggleStatus']);
+    Route::post('/expense-category-status', [ExpenseController::class, 'toggleStatus'])->name('expense-category-status');
 
     Route::get('/expenses', [ExpenseTransactionController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseTransactionController::class, 'store'])->name('expenses.store');
