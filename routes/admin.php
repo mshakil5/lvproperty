@@ -116,6 +116,9 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::post('/tenant-update', [TenantController::class, 'update']);
     Route::delete('/tenant/{id}', [TenantController::class, 'delete'])->name('tenant.delete');
     Route::post('/tenant-status', [TenantController::class, 'toggleStatus']);
+    Route::post('/tenant-renew', [TenantController::class, 'renewTenancy'])->name('tenant.renew');
+    Route::post('/tenant-terminate', [TenantController::class, 'terminateTenancy']);
+
     Route::get('/tenant/{id}/transactions', [TenantController::class, 'getTenantTransactions'])->name('tenant.transactions');
     Route::post('/tenant/receive-payment', [TenantController::class, 'receivePayment'])->name('tenant.receive-payment');
 
