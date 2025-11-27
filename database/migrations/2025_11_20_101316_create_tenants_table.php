@@ -13,34 +13,47 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email');
-            $table->string('phone');
-            $table->text('address')->nullable(); // Permanent address
-            $table->text('current_address');
-            $table->text('previous_address')->nullable();
-            $table->string('document')->nullable();
+            $table->foreignId('property_id')->nullable()->constrained()->onDelete('cascade');
+            // Basic profile
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('address_first_line')->nullable();
+            $table->string('city')->nullable();
+            $table->string('postcode')->nullable();
+            $table->string('emergency_contact');
+            //Documents
+            $table->enum('tenancy_agreement_status', ['yes', 'no'])->default('no');
+            $table->date('tenancy_agreement_date')->nullable();
+            $table->string('tenancy_agreement_document')->nullable();
+
+            $table->enum('reference_check_status', ['yes', 'no'])->default('no');
+            $table->date('reference_check_date')->nullable();
+            $table->string('reference_check_document')->nullable();
+
+            $table->enum('immigration_status', ['yes', 'no'])->default('no');
+            $table->date('immigration_status_date')->nullable();
+            $table->string('immigration_status_document')->nullable();
             
-            // Bank details
+            $table->enum('right_to_rent_status', ['yes', 'no'])->default('no');
+            $table->date('right_to_rent_date')->nullable();
+            $table->string('right_to_rent_document')->nullable();
+
+            $table->enum('previous_landlord_reference', ['yes', 'no'])->default('no');
+            $table->date('previous_landlord_reference_date')->nullable();
+            $table->string('previous_landlord_reference_document')->nullable();
+
+            $table->enum('personal_reference', ['yes', 'no'])->default('no');
+            $table->date('personal_reference_date')->nullable();
+            $table->string('personal_reference_document')->nullable();
+
+            // Bank Details
             $table->string('bank_name')->nullable();
             $table->string('account_number')->nullable();
             $table->string('sort_code')->nullable();
-            
-            // Emergency contact
-            $table->string('emergency_contact_name')->nullable();
-            $table->string('emergency_contact_phone')->nullable();
-            $table->string('emergency_contact_relation')->nullable();
-            
-            // References
-            $table->enum('reference_checked', ['Yes', 'No', 'Processing'])->default('No');
-            $table->text('previous_landlord_reference')->nullable();
-            $table->text('personal_reference')->nullable();
-            $table->string('credit_score')->nullable();
-            
-            // Immigration / Right to rent
-            $table->enum('immigration_status', ['Checked', 'Pending', 'Not Checked'])->default('Not Checked');
-            $table->enum('right_to_rent_status', ['Verified', 'Not Verified', 'Pending'])->default('Pending');
-            $table->date('right_to_rent_check_date')->nullable();
+
+            // Additional Tenants (JSON)
+            $table->json('additional_tenants')->nullable();
             
             $table->boolean('status')->default(true);
             $table->timestamps();

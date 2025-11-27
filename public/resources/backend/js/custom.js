@@ -133,6 +133,20 @@ $('#confirmDeleteBtn').on('click', function() {
     });
 });
 
+// Confirmation function
+function showConfirm(title, text, confirmText = 'Yes, Confirm!') {
+    return Swal.fire({
+        title: title,
+        text: text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: confirmText,
+        cancelButtonText: 'Cancel'
+    });
+}
+
 function reloadTable(tableSelector = null) {
     let table;
 

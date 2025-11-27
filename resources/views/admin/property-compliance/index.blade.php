@@ -188,12 +188,6 @@
 @section('script')
 <script>
     $(document).ready(function() {
-        // Initialize Select2 for all select elements
-        $('.select2').select2({
-            placeholder: "Select option",
-            allowClear: true,
-            width: '100%'
-        });
 
         $('#propertyComplianceTable').DataTable({
             processing: true,
@@ -324,13 +318,6 @@
             clearform();
             $("#newBtn").hide(100);
             $("#addThisFormContainer").show(300);
-            
-            // Re-initialize Select2 when form is shown
-            $('.select2').select2({
-                placeholder: "Select option",
-                allowClear: true,
-                width: '100%'
-            });
         });
 
         $("#FormCloseBtn").click(function() {

@@ -18,11 +18,10 @@ return new class extends Migration
             $table->foreignId('tenancy_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('landlord_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('property_compliance_id')->nullable()->constrained()->onDelete('cascade');
             $table->decimal('amount', 10, 2)->nullable();
             $table->string('payment_type')->default('cash');
             $table->string('transaction_type')->default('received'); // received, due
-            $table->boolean('status')->default(true);
+            $table->boolean('status')->default(false); // 1 = paid, 0 = not paid
             $table->text('description')->nullable();
             $table->timestamps();
         });

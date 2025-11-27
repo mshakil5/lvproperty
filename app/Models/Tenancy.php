@@ -9,25 +9,7 @@ class Tenancy extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'property_id',
-        'tenant_id', 
-        'landlord_id',
-        'amount',
-        'due_date',
-        'start_date',
-        'end_date',
-        'auto_renew',
-        'note',
-        'status'
-    ];
-
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'auto_renew' => 'boolean',
-        'status' => 'boolean',
-    ];
+    protected $guarded = [];
 
     // Relationships
     public function tenant()

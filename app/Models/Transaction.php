@@ -9,19 +9,7 @@ class Transaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'tran_id',
-        'date',
-        'tenancy_id',
-        'tenant_id',
-        'landlord_id',
-        'amount',
-        'payment_type',
-        'transaction_type',
-        'status',
-        'description',
-        'expense_id'
-    ];
+    protected $guarded = [];
 
     // Relationships
     public function tenancy()

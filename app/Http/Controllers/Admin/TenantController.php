@@ -15,68 +15,143 @@ class TenantController extends Controller
 {
     public function index(Request $request)
     {
-        $this->generateAllPendingTransactions();
+        $this->updateTenancyTypes();
 
         if ($request->ajax()) {
-            $tenants = Tenant::with(['currentProperty', 'transactions' => function($query) {
-                $query->where('transaction_type', 'due')->where('status', true);
+            $tenants = Tenant::with(['property', 'tenancies' => function($query) {
+                $query->where('status', 'active')->latest();
             }])->select([
-                'id', 
-                'name', 
-                'email', 
-                'phone', 
-                'reference_checked', 
+                'id',
+                'property_id',
+                'name',
+                'email',
+                'phone',
+                'address_first_line',
+                'city',
+                'postcode',
+                'emergency_contact',
                 'immigration_status',
                 'right_to_rent_status',
+                'previous_landlord_reference',
+                'personal_reference',
+                'bank_name',
                 'status'
             ])->orderBy('id', 'desc');
-            
+
             return DataTables::of($tenants)
                 ->addIndexColumn()
-                ->addColumn('property_name', function ($row) {
-                    return $row->currentProperty 
-                        ? $row->currentProperty->property_name 
-                        : '<span class="text-muted">N/A</span>';
+
+                /* ---------------------------
+                TENANT COLUMN
+                ---------------------------- */
+                ->addColumn('tenant', function ($row) {
+                    $html = '';
+
+                    if ($row->name) {
+                        $html .= '<strong>' . e($row->name) . '</strong><br>';
+                    }
+                    if ($row->email) {
+                        $html .= e($row->email) . '<br>';
+                    }
+                    if ($row->phone) {
+                        $html .= e($row->phone);
+                    }
+
+                    return $html ?: 'N/A';
                 })
-                ->addColumn('due_amount', function ($row) {
-                    $totalDue = $row->transactions->sum('amount');
-                    return '£' . number_format($totalDue, 2);
+
+                /* ---------------------------
+                PROPERTY & ADDRESS COLUMN
+                ---------------------------- */
+                ->addColumn('property_address', function ($row) {
+                    $html = '';
+
+                    if ($row->property) {
+                        $html .= '<strong>Property:</strong> ' . e($row->property->property_reference) . '<br>';
+                    }
+                    if ($row->address_first_line) {
+                        $html .= e($row->address_first_line) . '<br>';
+                    }
+                    if ($row->city) {
+                        $html .= e($row->city) . ' - ' . e($row->postcode);
+                    }
+
+                    return $html ?: 'N/A';
                 })
-                ->addColumn('reference_checked', function ($row) {
-                    $badge_class = [
-                        'Yes' => 'bg-success',
-                        'No' => 'bg-danger', 
-                        'Processing' => 'bg-warning'
-                    ][$row->reference_checked] ?? 'bg-secondary';
-                    
-                    return '<span class="badge '.$badge_class.'">'.$row->reference_checked.'</span>';
+
+                /* ---------------------------
+                CURRENT TENANCY COLUMN
+                ---------------------------- */
+                ->addColumn('current_tenancy', function ($row) {
+                    $currentTenancy = $row->tenancies->first();
+                    if ($currentTenancy) {
+                        $html = '';
+                        $html .= '<strong>Start:</strong> ' . \Carbon\Carbon::parse($currentTenancy->start_date)->format('d/m/Y') . '<br>';
+                        $html .= '<strong>End:</strong> ' . \Carbon\Carbon::parse($currentTenancy->end_date)->format('d/m/Y') . '<br>';
+                        $html .= '<strong>Rent:</strong> £' . number_format($currentTenancy->amount, 2);
+                        return $html;
+                    }
+                    return '<span class="text-muted">No active tenancy</span>';
                 })
-                ->addColumn('immigration_status', function ($row) {
-                    $badge_class = [
-                        'Checked' => 'bg-success',
-                        'Pending' => 'bg-warning', 
-                        'Not Checked' => 'bg-danger'
-                    ][$row->immigration_status] ?? 'bg-secondary';
-                    
-                    return '<span class="badge '.$badge_class.'">'.$row->immigration_status.'</span>';
+
+                /* ---------------------------
+                VERIFICATION COLUMN
+                ---------------------------- */
+                ->addColumn('verification', function ($row) {
+                    $html = '';
+
+                    // Immigration Status
+                    $immigrationBadge = $row->immigration_status == 'yes' ? 'bg-success' : 'bg-danger';
+                    $html .= '<span class="badge ' . $immigrationBadge . ' me-1 mb-1">Immigration: ' . e($row->immigration_status) . '</span><br>';
+
+                    // Right to Rent Status
+                    $rightToRentBadge = $row->right_to_rent_status == 'yes' ? 'bg-success' : 'bg-danger';
+                    $html .= '<span class="badge ' . $rightToRentBadge . ' me-1 mb-1">Right to Rent: ' . e($row->right_to_rent_status) . '</span><br>';
+
+                    // Previous Landlord Reference
+                    $landlordRefBadge = $row->previous_landlord_reference == 'yes' ? 'bg-success' : 'bg-danger';
+                    $html .= '<span class="badge ' . $landlordRefBadge . ' me-1 mb-1">Landlord Ref: ' . e($row->previous_landlord_reference) . '</span><br>';
+
+                    // Personal Reference
+                    $personalRefBadge = $row->personal_reference == 'yes' ? 'bg-success' : 'bg-danger';
+                    $html .= '<span class="badge ' . $personalRefBadge . '">Personal Ref: ' . e($row->personal_reference) . '</span>';
+
+                    return $html ?: 'N/A';
                 })
-                ->addColumn('right_to_rent', function ($row) {
-                    $badge_class = [
-                        'Verified' => 'bg-success',
-                        'Pending' => 'bg-warning', 
-                        'Not Verified' => 'bg-danger'
-                    ][$row->right_to_rent_status] ?? 'bg-secondary';
-                    
-                    return '<span class="badge '.$badge_class.'">'.$row->right_to_rent_status.'</span>';
+
+                /* ---------------------------
+                BANK DETAILS COLUMN
+                ---------------------------- */
+                ->addColumn('bank_details', function ($row) {
+                    $html = '';
+
+                    if ($row->bank_name) {
+                        $html .= '<strong>Bank:</strong> ' . e($row->bank_name) . '<br>';
+                    }
+                    if ($row->account_number) {
+                        $html .= '<strong>Account:</strong> ' . e($row->account_number) . '<br>';
+                    }
+                    if ($row->sort_code) {
+                        $html .= '<strong>Sort Code:</strong> ' . e($row->sort_code);
+                    }
+
+                    return $html ?: 'N/A';
                 })
+
+                /* ---------------------------
+                STATUS SWITCH
+                ---------------------------- */
                 ->addColumn('status', function ($row) {
-                    $checked = $row->status == 1 ? 'checked' : '';
+                    $checked = $row->status ? 'checked' : '';
                     return '<div class="form-check form-switch" dir="ltr">
                                 <input type="checkbox" class="form-check-input toggle-status" 
-                                    id="customSwitchStatus'.$row->id.'" data-id="'.$row->id.'" '.$checked.'>
-                                <label class="form-check-label" for="customSwitchStatus'.$row->id.'"></label>
+                                    data-id="' . $row->id . '" ' . $checked . '>
                             </div>';
                 })
+
+                /* ---------------------------
+                ACTIONS
+                ---------------------------- */
                 ->addColumn('action', function ($row) {
                     return '
                         <div class="dropdown">
@@ -86,13 +161,8 @@ class TenantController extends Controller
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <button class="dropdown-item" id="EditBtn" rid="'.$row->id.'">
+                                    <button class="dropdown-item" id="EditBtn" rid="' . $row->id . '">
                                         <i class="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit
-                                    </button>
-                                </li>
-                                <li>
-                                    <button class="dropdown-item view-tenancies-btn" data-tenant-id="'.$row->id.'">
-                                        <i class="ri-bill-fill align-bottom me-2 text-muted"></i> Tenancies
                                     </button>
                                 </li>
                                 <li class="dropdown-divider"></li>
@@ -108,95 +178,35 @@ class TenantController extends Controller
                         </div>
                     ';
                 })
-                ->rawColumns(['property_name', 'due_amount', 'reference_checked', 'immigration_status', 'right_to_rent', 'status', 'action'])
+
+                ->rawColumns(['tenant', 'property_address', 'current_tenancy', 'verification', 'bank_details', 'status', 'action'])
                 ->make(true);
         }
 
-        $properties = Property::where('status', 'Vacant')->orWhere('status', 'Occupied')->get();
+        $properties = Property::latest()->get();
         return view('admin.tenant.index', compact('properties'));
     }
 
-    private function generateAllPendingTransactions()
+    private function updateTenancyTypes()
     {
-        $activeTenancies = Tenancy::where('status', true)
-            ->where('start_date', '<=', now())
-            ->get();
-
-        foreach ($activeTenancies as $tenancy) {
-            $this->generateMissingMonthlyTransactions($tenancy);
-        }
-    }
-
-    private function generateMissingMonthlyTransactions($originalTenancy)
-    {
-        $startDate = new \DateTime($originalTenancy->start_date);
-        $today = new \DateTime();
-        $generatedCount = 0;
+        $today = now();
         
-        // If start date is in future, no need to generate transactions
-        if ($startDate > $today) {
-            return 0;
-        }
+        // Update to Rolling Contract (end date passed)
+        Tenancy::where('status', 'active')
+            ->whereDate('end_date', '<', $today)
+            ->update(['tenancy_type' => 'Rolling Contract']);
         
-        $month = $startDate;
+        // Update to Renewal Due (within 90 days)
+        Tenancy::where('status', 'active')
+            ->whereDate('end_date', '>=', $today)
+            ->whereDate('end_date', '<=', $today->copy()->addDays(90))
+            ->update(['tenancy_type' => 'Renewal Due']);
         
-        while ($month <= $today) {
-            $monthFormatted = $month->format('Y-m-01'); // First day of the month
-            $monthName = $month->format('F Y');
-            $monthEnd = (clone $month)->modify('+1 month -1 day')->format('Y-m-d'); // Last day of the month
-            
-            // Check if transaction already exists for this specific month
-            $existingTransaction = Transaction::where('tenant_id', $originalTenancy->tenant_id)
-                ->where('transaction_type', 'due')
-                ->whereYear('date', $month->format('Y'))
-                ->whereMonth('date', $month->format('m'))
-                ->first();
-                
-            if (!$existingTransaction) {
-                // Check if tenancy exists for this month, if not create one
-                $tenancy = Tenancy::where('tenant_id', $originalTenancy->tenant_id)
-                    ->whereYear('start_date', $month->format('Y'))
-                    ->whereMonth('start_date', $month->format('m'))
-                    ->first();
-                    
-                if (!$tenancy) {
-                    // Create new tenancy for this month
-                    $tenancy = new Tenancy();
-                    $tenancy->property_id = $originalTenancy->property_id;
-                    $tenancy->tenant_id = $originalTenancy->tenant_id;
-                    $tenancy->landlord_id = $originalTenancy->landlord_id;
-                    $tenancy->amount = $originalTenancy->amount;
-                    $tenancy->due_date = $originalTenancy->due_date;
-                    $tenancy->start_date = $monthFormatted;
-                    $tenancy->end_date = $monthEnd;
-                    $tenancy->auto_renew = $originalTenancy->auto_renew;
-                    $tenancy->note = 'Monthly tenancy for ' . $monthName;
-                    $tenancy->status = true;
-                    $tenancy->save();
-                }
-                
-                // Create transaction for this specific month
-                $transaction = new Transaction();
-                $transaction->tran_id = 'TXN' . $month->format('Ymd') . str_pad($tenancy->id, 4, '0', STR_PAD_LEFT);
-                $transaction->date = $monthFormatted;
-                $transaction->tenancy_id = $tenancy->id;
-                $transaction->tenant_id = $originalTenancy->tenant_id;
-                $transaction->landlord_id = $originalTenancy->landlord_id;
-                $transaction->amount = $originalTenancy->amount;
-                $transaction->payment_type = 'cash';
-                $transaction->transaction_type = 'due';
-                $transaction->status = true;
-                $transaction->description = 'Monthly rent due for ' . $monthName;
-                $transaction->save();
-                
-                $generatedCount++;
-            }
-            
-            // Move to next month
-            $month->modify('+1 month');
-        }
-        
-        return $generatedCount;
+        // Update to In Contract (more than 90 days remaining)
+        Tenancy::where('status', 'active')
+            ->whereDate('end_date', '>', $today->copy()->addDays(90))
+            ->where('tenancy_type', '!=', 'Renewed')
+            ->update(['tenancy_type' => 'In Contract']);
     }
 
     public function store(Request $request)
@@ -204,113 +214,282 @@ class TenantController extends Controller
         $request->validate([
             'property_id' => 'required|exists:properties,id',
             'name' => 'required',
-            'email' => 'required|email|unique:tenants,email',
+            'email' => 'required|email',
             'phone' => 'required',
-            'address' => 'nullable',
-            'current_address' => 'required',
-            'previous_address' => 'nullable',
-            'bank_name' => 'nullable',
-            'account_number' => 'nullable',
-            'sort_code' => 'nullable',
-            'emergency_contact_name' => 'nullable',
-            'emergency_contact_phone' => 'nullable',
-            'emergency_contact_relation' => 'nullable',
-            'reference_checked' => 'required|in:Yes,No,Processing',
-            'previous_landlord_reference' => 'nullable',
-            'personal_reference' => 'nullable',
-            'credit_score' => 'nullable',
-            'immigration_status' => 'required|in:Checked,Pending,Not Checked',
-            'right_to_rent_status' => 'required|in:Verified,Not Verified,Pending',
-            'right_to_rent_check_date' => 'nullable|date',
-            
-            // Tenancy validation
-            'amount' => 'required|numeric|min:0',
+            'address_first_line' => 'required',
+            'city' => 'required',
+            'postcode' => 'required',
+            'emergency_contact' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
-            'auto_renew' => 'required|boolean',
+            'amount' => 'required|numeric|min:0',
+
+            // New validation rules
+            'tenancy_agreement_status' => 'required|in:yes,no',
+            'tenancy_agreement_date' => 'nullable|date',
+            'reference_check_status' => 'required|in:yes,no',
+            'reference_check_date' => 'nullable|date',
+            'immigration_status' => 'required|in:yes,no',
+            'immigration_status_date' => 'nullable|date',
+            'right_to_rent_status' => 'required|in:yes,no',
+            'right_to_rent_date' => 'nullable|date',
+            'previous_landlord_reference' => 'required|in:yes,no',
+            'previous_landlord_reference_date' => 'nullable|date',
+            'personal_reference' => 'required|in:yes,no',
+            'personal_reference_date' => 'nullable|date',
+
+            // File validations
+            'tenancy_agreement_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'reference_check_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'immigration_status_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'right_to_rent_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'previous_landlord_reference_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'personal_reference_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        // Create Tenant
+        $tenant = new Tenant();
+        
+        // Basic Information
+        $tenant->property_id = $request->property_id;
+        $tenant->name = $request->name;
+        $tenant->email = $request->email;
+        $tenant->phone = $request->phone;
+        $tenant->address_first_line = $request->address_first_line;
+        $tenant->city = $request->city;
+        $tenant->postcode = $request->postcode;
+        $tenant->emergency_contact = $request->emergency_contact;
+
+        // Tenancy Agreement
+        $tenant->tenancy_agreement_status = $request->tenancy_agreement_status;
+        $tenant->tenancy_agreement_date = $request->tenancy_agreement_date;
+
+        // Reference Check
+        $tenant->reference_check_status = $request->reference_check_status;
+        $tenant->reference_check_date = $request->reference_check_date;
+
+        // Immigration & Right to Rent
+        $tenant->immigration_status = $request->immigration_status;
+        $tenant->immigration_status_date = $request->immigration_status_date;
+        $tenant->right_to_rent_status = $request->right_to_rent_status;
+        $tenant->right_to_rent_date = $request->right_to_rent_date;
+
+        // References
+        $tenant->previous_landlord_reference = $request->previous_landlord_reference;
+        $tenant->previous_landlord_reference_date = $request->previous_landlord_reference_date;
+        $tenant->personal_reference = $request->personal_reference;
+        $tenant->personal_reference_date = $request->personal_reference_date;
+
+        // Bank Details
+        $tenant->bank_name = $request->bank_name;
+        $tenant->account_number = $request->account_number;
+        $tenant->sort_code = $request->sort_code;
+
+        // Additional Tenants (JSON)
+        if ($request->has('additional_tenants') && !empty($request->additional_tenants)) {
+            $additionalTenants = json_decode($request->additional_tenants, true);
+            if (is_array($additionalTenants) && !empty($additionalTenants)) {
+                $tenant->additional_tenants = json_encode($additionalTenants); 
+            } else {
+                $tenant->additional_tenants = null;
+            }
+        } else {
+            $tenant->additional_tenants = null;
+        }
+
+        /* ---------------------------------------------------
+            FILE UPLOADS - Optimized with loop
+        --------------------------------------------------- */
+        $uploadPath = 'uploads/tenants/';
+        
+        // Document types mapping
+        $documentTypes = [
+            'tenancy_agreement_document',
+            'reference_check_document', 
+            'immigration_status_document',
+            'right_to_rent_document',
+            'previous_landlord_reference_document',
+            'personal_reference_document'
+        ];
+
+        // Process all document uploads in loop
+        foreach ($documentTypes as $documentType) {
+            if ($request->hasFile($documentType)) {
+                $file = $request->file($documentType);
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenant->{$documentType} = '/' . $uploadPath . $filename;
+            }
+        }
+
+        // Save Tenant
+        $tenant->save();
+
+        // Get landlord_id from property
+        $property = Property::find($request->property_id);
+        $landlord_id = $property ? $property->landlord_id : null;
+
+        // Create Tenancy
+        $tenancy = new Tenancy();
+        $tenancy->property_id = $request->property_id;
+        $tenancy->tenant_id = $tenant->id;
+        $tenancy->landlord_id = $landlord_id;
+        $tenancy->start_date = $request->start_date;
+        $tenancy->end_date = $request->end_date;
+        $tenancy->amount = $request->amount;
+        $tenancy->note = $request->note;
+        $tenancy->status = 'active';
+        $tenancy->tenancy_type = 'In Contract';
+        $tenancy->save();
+
+        // Create Transaction
+        $transaction = new Transaction();
+        $transaction->tran_id = 'TXN' . date('Ymd') . str_pad(Transaction::count() + 1, 4, '0', STR_PAD_LEFT);
+        $transaction->date = $request->start_date;
+        $transaction->tenancy_id = $tenancy->id;
+        $transaction->tenant_id = $tenant->id;
+        $transaction->landlord_id = $landlord_id;
+        $transaction->amount = $request->amount;
+        $transaction->payment_type = 'cash';
+        $transaction->transaction_type = 'due';
+        $transaction->status = false; // 0 = not paid
+        $transaction->description = $request->note ?: 'Monthly rent due';
+        $transaction->save();
+
+        return response()->json([
+            'message' => 'Tenant and tenancy created successfully!',
+            'tenant' => $tenant,
+            'tenancy' => $tenancy
+        ], 200);
+    }
+
+    public function renewTenancy(Request $request)
+    {
+        $request->validate([
+            'tenant_id' => 'required|exists:tenants,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+            'amount' => 'required|numeric|min:0',
             'note' => 'nullable|string'
         ]);
 
-        // Start database transaction
         DB::beginTransaction();
 
         try {
-            // 1. Create Tenant
-            $tenant = new Tenant;
-            $tenant->name = $request->name;
-            $tenant->email = $request->email;
-            $tenant->phone = $request->phone;
-            $tenant->address = $request->address;
-            $tenant->current_address = $request->current_address;
-            $tenant->previous_address = $request->previous_address;
-            $tenant->bank_name = $request->bank_name;
-            $tenant->account_number = $request->account_number;
-            $tenant->sort_code = $request->sort_code;
-            $tenant->emergency_contact_name = $request->emergency_contact_name;
-            $tenant->emergency_contact_phone = $request->emergency_contact_phone;
-            $tenant->emergency_contact_relation = $request->emergency_contact_relation;
-            $tenant->reference_checked = $request->reference_checked;
-            $tenant->previous_landlord_reference = $request->previous_landlord_reference;
-            $tenant->personal_reference = $request->personal_reference;
-            $tenant->credit_score = $request->credit_score;
-            $tenant->immigration_status = $request->immigration_status;
-            $tenant->right_to_rent_status = $request->right_to_rent_status;
-            $tenant->right_to_rent_check_date = $request->right_to_rent_check_date;
+            $tenant = Tenant::findOrFail($request->tenant_id);
+            
+            // Get current active tenancy
+            $currentTenancy = Tenancy::where('tenant_id', $request->tenant_id)
+                                    ->where('status', 'active')
+                                    ->first();
 
-            if ($request->hasFile('document')) {
-                $document = $request->file('document');
-                $documentName = time() . '_' . uniqid() . '.' . $document->getClientOriginalExtension();
-                $document->move(public_path('images/tenant-file'), $documentName);
-                $tenant->document = $documentName;
+            if (!$currentTenancy) {
+                return response()->json([
+                    'message' => 'No active tenancy found to renew'
+                ], 404);
             }
 
-            $tenant->save();
+            // Get landlord_id from current tenancy
+            $landlord_id = $currentTenancy->landlord_id;
+            $property_id = $currentTenancy->property_id;
 
-            // 2. Get Property and Landlord info
-            $property = Property::find($request->property_id);
-            $landlord_id = $property->landlord_id;
+            // Mark current tenancy as completed
+            $currentTenancy->status = 'completed';
+            if ($currentTenancy->tenancy_type === 'Renewal Due' || $currentTenancy->tenancy_type === 'Rolling Contract') {
+                $currentTenancy->tenancy_type = 'Renewed';
+            }
+            $currentTenancy->save();
 
-            // 3. Create Tenancy
-            $tenancy = new Tenancy;
-            $tenancy->property_id = $request->property_id;
-            $tenancy->tenant_id = $tenant->id;
-            $tenancy->landlord_id = $landlord_id;
-            $tenancy->amount = $request->amount;
-            $tenancy->due_date = 20; // Default due date
-            $tenancy->start_date = $request->start_date;
-            $tenancy->end_date = $request->end_date;
-            $tenancy->auto_renew = $request->auto_renew;
-            $tenancy->note = $request->note;
-            $tenancy->status = true;
-            $tenancy->save();
+            // Create new tenancy
+            $newTenancy = new Tenancy();
+            $newTenancy->property_id = $property_id;
+            $newTenancy->tenant_id = $request->tenant_id;
+            $newTenancy->landlord_id = $landlord_id;
+            $newTenancy->parent_id = $currentTenancy->id;
+            $newTenancy->start_date = $request->start_date;
+            $newTenancy->end_date = $request->end_date;
+            $newTenancy->amount = $request->amount;
+            $newTenancy->note = $request->note;
+            $newTenancy->status = 'active';
+            $newTenancy->tenancy_type = 'In Contract';
+            $newTenancy->save();
 
+            // Create Due Transaction for new tenancy
             $transaction = new Transaction();
             $transaction->tran_id = 'TXN' . date('Ymd') . str_pad(Transaction::count() + 1, 4, '0', STR_PAD_LEFT);
             $transaction->date = $request->start_date;
-            $transaction->tenancy_id = $tenancy->id;
+            $transaction->tenancy_id = $newTenancy->id;
             $transaction->tenant_id = $tenant->id;
             $transaction->landlord_id = $landlord_id;
             $transaction->amount = $request->amount;
             $transaction->payment_type = 'cash';
             $transaction->transaction_type = 'due';
-            $transaction->status = true;
-            $transaction->description = 'Monthly rent due for ' . date('F Y', strtotime($request->start_date));
+            $transaction->status = false; // 0 = not paid
+            $transaction->description = $request->note ?: 'Monthly rent due for renewed tenancy';
             $transaction->save();
-
-            Property::where('id', $request->property_id)->update(['status' => 'Occupied']);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Tenant and Tenancy created successfully!',
-                'tenant' => $tenant,
+                'message' => 'Tenancy renewed successfully!',
+                'new_tenancy' => $newTenancy,
+                'transaction' => $transaction
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'message' => 'Failed to renew tenancy: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function terminateTenancy(Request $request)
+    {
+        $request->validate([
+            'tenancy_id' => 'required|exists:tenancies,id',
+            'termination_type' => 'required|in:By Landlord,By Tenant',
+            'termination_date' => 'required|date',
+            'termination_reason' => 'nullable|string',
+            'termination_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $tenancy = Tenancy::findOrFail($request->tenancy_id);
+            
+            // Update tenancy status to terminated
+            $tenancy->status = 'terminated';
+            $tenancy->termination_type = $request->termination_type;
+            $tenancy->termination_date = $request->termination_date;
+            $tenancy->termination_reason = $request->termination_reason;
+
+            // Handle termination document upload
+            if ($request->hasFile('termination_document')) {
+                $uploadPath = 'uploads/tenants/';
+                $file = $request->file('termination_document');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenancy->termination_document = '/' . $uploadPath . $filename;
+            }
+
+            $tenancy->save();
+
+            // Set property status to Vacant
+            Property::where('id', $tenancy->property_id)->update(['status' => 'Vacant']);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Tenancy terminated successfully!',
                 'tenancy' => $tenancy
             ], 200);
 
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json([
-                'message' => 'Server error while creating tenant and tenancy: ' . $e->getMessage()
+                'message' => 'Failed to terminate tenancy: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -318,33 +497,72 @@ class TenantController extends Controller
     public function edit($id)
     {
         $tenant = Tenant::with(['tenancies' => function($query) {
-            $query->where('status', true)->latest()->first();
+            $query->orderBy('created_at', 'desc');
         }])->find($id);
 
         if (!$tenant) {
             return response()->json(['error' => 'Tenant not found'], 404);
         }
 
-        // Get current active tenancy or create empty object
-        $currentTenancy = $tenant->tenancies->first();
+        // Get current active tenancy OR the most recent tenancy (including terminated)
+        $currentTenancy = $tenant->tenancies->where('status', 'active')->first();
+        
+        // If no active tenancy, get the most recent one (could be terminated/completed)
+        if (!$currentTenancy) {
+            $currentTenancy = $tenant->tenancies->first();
+        }
+        
+        // Get previous tenancies (completed/terminated) excluding the current one
+        $previousTenancies = $tenant->tenancies;
+        if ($currentTenancy) {
+            $previousTenancies = $previousTenancies->where('id', '!=', $currentTenancy->id)->values();
+        } else {
+            $previousTenancies = $previousTenancies->values();
+        }
         
         $responseData = $tenant->toArray();
         
-        // Add tenancy data to response
+        // Add current tenancy data to response
         if ($currentTenancy) {
             $responseData['amount'] = $currentTenancy->amount;
             $responseData['start_date'] = $currentTenancy->start_date;
             $responseData['end_date'] = $currentTenancy->end_date;
-            $responseData['auto_renew'] = $currentTenancy->auto_renew;
             $responseData['note'] = $currentTenancy->note;
+            $responseData['tenancy_type'] = $currentTenancy->tenancy_type;
+            $responseData['status'] = $currentTenancy->status; // This is the key fix!
+            $responseData['current_tenancy_id'] = $currentTenancy->id;
+            
+            // Add termination data if status is terminated
+            if ($currentTenancy->status === 'terminated') {
+                $responseData['termination_type'] = $currentTenancy->termination_type;
+                $responseData['termination_date'] = $currentTenancy->termination_date;
+                $responseData['termination_reason'] = $currentTenancy->termination_reason;
+                $responseData['termination_document'] = $currentTenancy->termination_document;
+            }
         } else {
             // Default values if no tenancy exists
             $responseData['amount'] = '';
             $responseData['start_date'] = '';
             $responseData['end_date'] = '';
-            $responseData['auto_renew'] = 1;
             $responseData['note'] = '';
+            $responseData['tenancy_type'] = 'In Contract';
+            $responseData['status'] = 'active'; // Default status
+            $responseData['current_tenancy_id'] = null;
         }
+
+        // Add previous tenancies data
+        $responseData['previous_tenancies'] = $previousTenancies->map(function($tenancy) {
+            return [
+                'id' => $tenancy->id,
+                'start_date' => $tenancy->start_date,
+                'end_date' => $tenancy->end_date,
+                'amount' => $tenancy->amount,
+                'note' => $tenancy->note,
+                'status' => $tenancy->status,
+                'tenancy_type' => $tenancy->tenancy_type,
+                'created_at' => $tenancy->created_at
+            ];
+        })->toArray();
 
         return response()->json($responseData);
     }
@@ -354,31 +572,21 @@ class TenantController extends Controller
         $request->validate([
             'property_id' => 'required|exists:properties,id',
             'name' => 'required',
-            'email' => 'required|email|unique:tenants,email,' . $request->codeid,
+            'email' => 'required|email',
             'phone' => 'required',
-            'address' => 'nullable',
-            'current_address' => 'required',
-            'previous_address' => 'nullable',
-            'bank_name' => 'nullable',
-            'account_number' => 'nullable',
-            'sort_code' => 'nullable',
-            'emergency_contact_name' => 'nullable',
-            'emergency_contact_phone' => 'nullable',
-            'emergency_contact_relation' => 'nullable',
-            'reference_checked' => 'required|in:Yes,No,Processing',
-            'previous_landlord_reference' => 'nullable',
-            'personal_reference' => 'nullable',
-            'credit_score' => 'nullable',
-            'immigration_status' => 'required|in:Checked,Pending,Not Checked',
-            'right_to_rent_status' => 'required|in:Verified,Not Verified,Pending',
-            'right_to_rent_check_date' => 'nullable|date',
-            
-            // Tenancy validation
-            'amount' => 'required|numeric|min:0',
+            'address_first_line' => 'required',
+            'city' => 'required',
+            'postcode' => 'required',
+            'emergency_contact' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
-            'auto_renew' => 'required|boolean',
-            'note' => 'nullable|string'
+            'amount' => 'required|numeric|min:0',
+
+            // File validations
+            'tenancy_agreement_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'reference_check_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'previous_landlord_reference_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
+            'personal_reference_document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
 
         DB::beginTransaction();
@@ -386,121 +594,186 @@ class TenantController extends Controller
         try {
             $tenant = Tenant::findOrFail($request->codeid);
             
-            // Handle property status when changing properties
-            $oldPropertyId = $tenant->property_id;
-            $newPropertyId = $request->property_id;
-            
-            if ($oldPropertyId != $newPropertyId) {
-                Property::where('id', $oldPropertyId)->update(['status' => 'Vacant']);
-                Property::where('id', $newPropertyId)->update(['status' => 'Occupied']);
-            }
-            
-            // Update Tenant
+            // Basic Information
             $tenant->property_id = $request->property_id;
             $tenant->name = $request->name;
             $tenant->email = $request->email;
             $tenant->phone = $request->phone;
-            $tenant->address = $request->address;
-            $tenant->current_address = $request->current_address;
-            $tenant->previous_address = $request->previous_address;
+            $tenant->address_first_line = $request->address_first_line;
+            $tenant->city = $request->city;
+            $tenant->postcode = $request->postcode;
+            $tenant->emergency_contact = $request->emergency_contact;
+
+            // Reference Check
+            $tenant->reference_check_date = $request->reference_check_date;
+
+            // Immigration & Right to Rent
+            $tenant->immigration_status = $request->immigration_status;
+            $tenant->immigration_status_date = $request->immigration_status_date;
+            $tenant->right_to_rent_status = $request->right_to_rent_status;
+            $tenant->right_to_rent_date = $request->right_to_rent_date;
+
+            // References
+            $tenant->previous_landlord_reference = $request->previous_landlord_reference;
+            $tenant->personal_reference = $request->personal_reference;
+
+            // Bank Details
             $tenant->bank_name = $request->bank_name;
             $tenant->account_number = $request->account_number;
             $tenant->sort_code = $request->sort_code;
-            $tenant->emergency_contact_name = $request->emergency_contact_name;
-            $tenant->emergency_contact_phone = $request->emergency_contact_phone;
-            $tenant->emergency_contact_relation = $request->emergency_contact_relation;
-            $tenant->reference_checked = $request->reference_checked;
-            $tenant->previous_landlord_reference = $request->previous_landlord_reference;
-            $tenant->personal_reference = $request->personal_reference;
-            $tenant->credit_score = $request->credit_score;
-            $tenant->immigration_status = $request->immigration_status;
-            $tenant->right_to_rent_status = $request->right_to_rent_status;
-            $tenant->right_to_rent_check_date = $request->right_to_rent_check_date;
 
-            if ($request->hasFile('document')) {
-                // Delete old document if exists
-                if ($tenant->document && file_exists(public_path('images/tenant-file/' . $tenant->document))) {
-                    unlink(public_path('images/tenant-file/' . $tenant->document));
+            // Additional Tenants (JSON)
+            if ($request->has('additional_tenants') && !empty($request->additional_tenants)) {
+                $additionalTenants = json_decode($request->additional_tenants, true);
+                if (is_array($additionalTenants) && !empty($additionalTenants)) {
+                    $tenant->additional_tenants = json_encode($additionalTenants); 
+                } else {
+                    $tenant->additional_tenants = null;
                 }
-                
-                $document = $request->file('document');
-                $documentName = time() . '_' . uniqid() . '.' . $document->getClientOriginalExtension();
-                $document->move(public_path('images/tenant-file'), $documentName);
-                $tenant->document = $documentName;
+            } else {
+                $tenant->additional_tenants = null;
             }
 
+            /* ---------------------------------------------------
+                FILE UPLOADS
+            --------------------------------------------------- */
+            $uploadPath = 'uploads/tenants/';
+
+            // Tenancy Agreement Document
+            if ($request->hasFile('tenancy_agreement_document')) {
+                // Delete old file if exists
+                if ($tenant->tenancy_agreement_document && file_exists(public_path($tenant->tenancy_agreement_document))) {
+                    unlink(public_path($tenant->tenancy_agreement_document));
+                }
+                
+                $file = $request->file('tenancy_agreement_document');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenant->tenancy_agreement_document = '/' . $uploadPath . $filename;
+            }
+
+            // Reference Check Document
+            if ($request->hasFile('reference_check_document')) {
+                // Delete old file if exists
+                if ($tenant->reference_check_document && file_exists(public_path($tenant->reference_check_document))) {
+                    unlink(public_path($tenant->reference_check_document));
+                }
+                
+                $file = $request->file('reference_check_document');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenant->reference_check_document = '/' . $uploadPath . $filename;
+            }
+
+            // Previous Landlord Reference Document
+            if ($request->hasFile('previous_landlord_reference_document')) {
+                // Delete old file if exists
+                if ($tenant->previous_landlord_reference_document && file_exists(public_path($tenant->previous_landlord_reference_document))) {
+                    unlink(public_path($tenant->previous_landlord_reference_document));
+                }
+                
+                $file = $request->file('previous_landlord_reference_document');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenant->previous_landlord_reference_document = '/' . $uploadPath . $filename;
+            }
+
+            // Personal Reference Document
+            if ($request->hasFile('personal_reference_document')) {
+                // Delete old file if exists
+                if ($tenant->personal_reference_document && file_exists(public_path($tenant->personal_reference_document))) {
+                    unlink(public_path($tenant->personal_reference_document));
+                }
+                
+                $file = $request->file('personal_reference_document');
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $tenant->personal_reference_document = '/' . $uploadPath . $filename;
+            }
+
+            // Save Tenant
             $tenant->save();
 
-            // Get new property and landlord info
+            // Get landlord_id from property
             $property = Property::find($request->property_id);
-            $landlord_id = $property->landlord_id;
+            $landlord_id = $property ? $property->landlord_id : null;
 
-            // Update or Create Tenancy
+            // Update Tenancy
             $tenancy = Tenancy::where('tenant_id', $tenant->id)
-                            ->where('status', true)
+                            ->where('status', 'active')
                             ->first();
 
             $tenancyCreated = false;
             if ($tenancy) {
-                // Update existing tenancy
                 $tenancy->property_id = $request->property_id;
-                $tenancy->amount = $request->amount;
+                $tenancy->landlord_id = $landlord_id;
                 $tenancy->start_date = $request->start_date;
                 $tenancy->end_date = $request->end_date;
-                $tenancy->auto_renew = $request->auto_renew;
+                $tenancy->amount = $request->amount;
                 $tenancy->note = $request->note;
                 $tenancy->save();
             } else {
-                // Create new tenancy if none exists
-                $tenancy = new Tenancy;
-                $tenancy->property_id = $request->property_id;
-                $tenancy->tenant_id = $tenant->id;
-                $tenancy->landlord_id = $landlord_id;
-                $tenancy->amount = $request->amount;
-                $tenancy->due_date = 20;
-                $tenancy->start_date = $request->start_date;
-                $tenancy->end_date = $request->end_date;
-                $tenancy->auto_renew = $request->auto_renew;
-                $tenancy->note = $request->note;
-                $tenancy->status = true;
-                $tenancy->save();
-                $tenancyCreated = true;
+                // Only create new tenancy if the latest one is NOT terminated
+                $latestTenancy = Tenancy::where('tenant_id', $tenant->id)
+                                    ->orderBy('created_at', 'desc')
+                                    ->first();
+                
+                // Check if latest tenancy exists and is terminated
+                if (!$latestTenancy || $latestTenancy->status !== 'terminated') {
+                    // Create new tenancy if none exists OR latest is not terminated
+                    $tenancy = new Tenancy();
+                    $tenancy->property_id = $request->property_id;
+                    $tenancy->tenant_id = $tenant->id;
+                    $tenancy->landlord_id = $landlord_id;
+                    $tenancy->start_date = $request->start_date;
+                    $tenancy->end_date = $request->end_date;
+                    $tenancy->amount = $request->amount;
+                    $tenancy->note = $request->note;
+                    $tenancy->status = 'active';
+                    $tenancy->tenancy_type = 'In Contract';
+                    $tenancy->save();
+                    $tenancyCreated = true;
+                } else {
+                    // If latest tenancy is terminated, don't create new one
+                    $tenancy = null;
+                }
             }
 
-            // Handle Transaction Update/Creation
-            $transaction = Transaction::where('tenancy_id', $tenancy->id)
-                                    ->where('transaction_type', 'due')
-                                    ->where('status', true)
-                                    ->first();
+            // Update or Create Due Transaction only if tenancy exists
+            if ($tenancy) {
+                $transaction = Transaction::where('tenancy_id', $tenancy->id)
+                                        ->where('transaction_type', 'due')
+                                        ->first();
 
-            if ($transaction) {
-                // Update existing due transaction if amount changed or property changed
-                if ($transaction->amount != $request->amount || $transaction->landlord_id != $landlord_id) {
+                if ($transaction) {
+                    // Update existing due transaction
                     $transaction->amount = $request->amount;
+                    $transaction->description = $request->note ?: 'Monthly rent due';
+                    $transaction->save();
+                } else {
+                    // Create new due transaction
+                    $transaction = new Transaction();
+                    $transaction->tran_id = 'TXN' . date('Ymd') . str_pad(Transaction::count() + 1, 4, '0', STR_PAD_LEFT);
+                    $transaction->date = $request->start_date;
+                    $transaction->tenancy_id = $tenancy->id;
+                    $transaction->tenant_id = $tenant->id;
                     $transaction->landlord_id = $landlord_id;
-                    $transaction->description = 'Monthly rent due for ' . date('F Y', strtotime($request->start_date));
+                    $transaction->amount = $request->amount;
+                    $transaction->payment_type = 'cash';
+                    $transaction->transaction_type = 'due';
+                    $transaction->status = false; // 0 = not paid
+                    $transaction->description = $request->note ?: 'Monthly rent due';
                     $transaction->save();
                 }
-            } else {
-                // Create new due transaction if none exists (for existing tenants)
-                $transaction = new Transaction();
-                $transaction->tran_id = 'TXN' . date('Ymd') . str_pad(Transaction::count() + 1, 4, '0', STR_PAD_LEFT);
-                $transaction->date = $request->start_date;
-                $transaction->tenancy_id = $tenancy->id;
-                $transaction->tenant_id = $tenant->id;
-                $transaction->landlord_id = $landlord_id;
-                $transaction->amount = $request->amount;
-                $transaction->payment_type = 'cash';
-                $transaction->transaction_type = 'due';
-                $transaction->status = true;
-                $transaction->description = 'Monthly rent due for ' . date('F Y', strtotime($request->start_date));
-                $transaction->save();
             }
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Tenant, Tenancy and Transaction updated successfully!'
+                'message' => 'Tenant and tenancy updated successfully!',
+                'tenant' => $tenant,
+                'tenancy' => $tenancy,
+                'transaction' => $transaction
             ], 200);
 
         } catch (\Exception $e) {
@@ -529,6 +802,8 @@ class TenantController extends Controller
         if ($tenant->currentTenancy) {
             Property::where('id', $tenant->currentTenancy->property_id)->update(['status' => 'Vacant']);
         }
+
+        Transaction::where('tenant_id', $id)->delete();
 
         if ($tenant->delete()) {
             return response()->json([
@@ -568,82 +843,5 @@ class TenantController extends Controller
         return response()->json([
             'message' => 'Failed to update tenant status'
         ], 500);
-    }
-
-    public function getTenantTransactions($tenantId)
-    {
-        // Get all transactions
-        $transactions = Transaction::with('tenancy.property')
-            ->where('tenant_id', $tenantId)
-            ->orderBy('date', 'desc')
-            ->get();
-
-        // Filter out due transactions that have a corresponding received transaction
-        $filteredTransactions = $transactions->filter(function($transaction) use ($transactions) {
-            if ($transaction->transaction_type === 'due') {
-                // Check if there's a received transaction for the same description/month
-                $hasReceived = $transactions->where('description', 'Payment received for ' . $transaction->description)
-                    ->where('transaction_type', 'received')
-                    ->isNotEmpty();
-                return !$hasReceived;
-            }
-            return true;
-        });
-
-        return response()->json([
-            'transactions' => $filteredTransactions->values()->toArray(), // Convert to array
-            'total_due' => $transactions->where('transaction_type', 'due')->where('status', true)->sum('amount'),
-            'total_received' => $transactions->where('transaction_type', 'received')->where('status', true)->sum('amount')
-        ]);
-    }
-    
-    public function receivePayment(Request $request)
-    {
-        $request->validate([
-            'transaction_id' => 'required|exists:transactions,id',
-            'payment_type' => 'required|in:cash,bank,card,online',
-            'payment_date' => 'required|date',
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            $dueTransaction = Transaction::findOrFail($request->transaction_id);
-            
-            if ($dueTransaction->transaction_type !== 'due') {
-                return response()->json(['message' => 'Invalid transaction type'], 400);
-            }
-
-            // Create received transaction
-            $receivedTransaction = new Transaction();
-            $receivedTransaction->tran_id = 'TXN' . date('YmdHis') . mt_rand(100, 999);
-            $receivedTransaction->date = $request->payment_date;
-            $receivedTransaction->tenancy_id = $dueTransaction->tenancy_id;
-            $receivedTransaction->tenant_id = $dueTransaction->tenant_id;
-            $receivedTransaction->landlord_id = $dueTransaction->landlord_id;
-            $receivedTransaction->amount = $dueTransaction->amount;
-            $receivedTransaction->payment_type = $request->payment_type;
-            $receivedTransaction->transaction_type = 'received';
-            $receivedTransaction->status = true;
-            $receivedTransaction->description = 'Payment received for ' . $dueTransaction->description;
-            $receivedTransaction->save();
-
-            // Mark the due transaction as inactive/paid
-            $dueTransaction->status = false;
-            $dueTransaction->save();
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Payment received successfully!',
-                'transaction' => $receivedTransaction
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-                'message' => 'Failed to process payment: ' . $e->getMessage()
-            ], 500);
-        }
     }
 }
