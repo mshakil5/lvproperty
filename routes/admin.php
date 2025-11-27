@@ -18,9 +18,11 @@ use App\Http\Controllers\Admin\ComplianceTypeController;
 use App\Http\Controllers\Admin\PropertyComplianceController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\ExpenseTransactionController;
+use App\Http\Controllers\Admin\IncomeController;
 
 Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], function(){
     Route::get('/dashboard', [HomeController::class, 'adminHome'])->name('admin.dashboard');
+    Route::get('/clean', [HomeController::class, 'cleanDb']);
     // User
     Route::get('/user', [UserController::class, 'index'])->name('user.index');
     Route::post('/user', [UserController::class, 'store'])->name('user.store');
@@ -151,4 +153,9 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::delete('/expenses/{id}', [ExpenseTransactionController::class, 'delete'])->name('expenses.delete');
     Route::post('/expenses-status', [ExpenseTransactionController::class, 'toggleStatus'])->name('expenses.status');
 
+    // Income routes
+    Route::get('/income', [IncomeController::class, 'index'])->name('income.index');
+    Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
+    Route::get('/income/due-transactions', [IncomeController::class, 'getDueTransactions'])->name('income.due-transactions');
+    Route::get('/income/{id}/details', [IncomeController::class, 'getIncomeDetails'])->name('income.details');
 });

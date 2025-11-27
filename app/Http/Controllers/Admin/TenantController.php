@@ -349,6 +349,7 @@ class TenantController extends Controller
         $transaction->tenancy_id = $tenancy->id;
         $transaction->tenant_id = $tenant->id;
         $transaction->landlord_id = $landlord_id;
+        $transaction->property_id = $request->property_id;
         $transaction->amount = $request->amount;
         $transaction->payment_type = 'cash';
         $transaction->transaction_type = 'due';
@@ -421,6 +422,7 @@ class TenantController extends Controller
             $transaction->tenancy_id = $newTenancy->id;
             $transaction->tenant_id = $tenant->id;
             $transaction->landlord_id = $landlord_id;
+            $transaction->property_id = $property_id;
             $transaction->amount = $request->amount;
             $transaction->payment_type = 'cash';
             $transaction->transaction_type = 'due';
@@ -747,6 +749,11 @@ class TenantController extends Controller
 
                 if ($transaction) {
                     // Update existing due transaction
+                    $transaction->date = $request->start_date;
+                    $transaction->tenancy_id = $tenancy->id;
+                    $transaction->tenant_id = $tenant->id;
+                    $transaction->landlord_id = $landlord_id;
+                    $transaction->property_id = $request->property_id; // Update property_id
                     $transaction->amount = $request->amount;
                     $transaction->description = $request->note ?: 'Monthly rent due';
                     $transaction->save();
@@ -758,6 +765,7 @@ class TenantController extends Controller
                     $transaction->tenancy_id = $tenancy->id;
                     $transaction->tenant_id = $tenant->id;
                     $transaction->landlord_id = $landlord_id;
+                    $transaction->property_id = $request->property_id;
                     $transaction->amount = $request->amount;
                     $transaction->payment_type = 'cash';
                     $transaction->transaction_type = 'due';

@@ -12,6 +12,7 @@ use App\Models\Expense;
 use App\Models\Tenancy;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
@@ -140,6 +141,30 @@ class HomeController extends Controller
         //     'recentTransactions',
         //     'topProperties'
         // ));
+    }
+
+    public function cleanDB()
+    {
+        $tables = [
+            'compliance_types',
+            'expenses',
+            'landlords',
+            'properties',
+            'property_compliances',
+            'tenancies',
+            'tenants',
+            'transactions',
+        ];
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        foreach ($tables as $table) {
+            DB::table($table)->truncate();
+        }
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        return "Cleaned.";
     }
 
     public function managerHome()

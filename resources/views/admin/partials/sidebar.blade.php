@@ -139,6 +139,13 @@
                         <span>Property Compliance</span>
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a href="{{ route('income.index') }}" class="nav-link {{ Route::is('income.index') ? 'active' : '' }}">
+                        <i class="ri-wallet-3-line"></i>
+                        <span>Income</span>
+                    </a>
+                </li>
                 
                 <li class="nav-item">
                     <a class="nav-link menu-link {{ Request::is('admin/expense*') ? 'active' : '' }}" 
