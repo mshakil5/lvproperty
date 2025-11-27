@@ -9,8 +9,6 @@ use App\Models\Property;
 use App\Models\ComplianceType;
 use DataTables;
 use Illuminate\Support\Facades\DB;
-use App\Models\Transaction;
-use App\Models\Tenancy;
 
 class PropertyComplianceController extends Controller
 {
@@ -18,13 +16,13 @@ class PropertyComplianceController extends Controller
     {
         if ($request->ajax()) {
             $propertyCompliances = PropertyCompliance::with(['property', 'complianceType'])
-                ->select(['id', 'property_id', 'compliance_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status', 'cost', 'paid_by'])
+                ->select(['id', 'property_id', 'compliance_type_id', 'certificate_number', 'issue_date', 'expiry_date', 'status'])
                 ->orderBy('id', 'desc');
 
             return DataTables::of($propertyCompliances)
                 ->addIndexColumn()
-                ->addColumn('property_name', function ($row) {
-                    return $row->property ? $row->property->property_name : '<span class="text-muted">N/A</span>';
+                ->addColumn('property_reference', function ($row) {
+                    return $row->property ? $row->property->property_reference : '<span class="text-muted">N/A</span>';
                 })
                 ->addColumn('compliance_type', function ($row) {
                     return $row->complianceType ? $row->complianceType->name : '<span class="text-muted">N/A</span>';
@@ -38,19 +36,6 @@ class PropertyComplianceController extends Controller
                 ->addColumn('expiry_date', function ($row) {
                     return $row->expiry_date ? date('d M, Y', strtotime($row->expiry_date)) : 'N/A';
                 })
-                ->addColumn('cost', function ($row) {
-                    return $row->cost ? '£' . number_format($row->cost, 2) : '<span class="text-muted">N/A</span>';
-                })
-                ->addColumn('payment_status', function ($row) {
-                    // Get payment status from transaction
-                    $transaction = Transaction::where('property_compliance_id', $row->id)
-                        ->where('transaction_type', 'due')
-                        ->first();
-                    
-                    $badge_class = $transaction && $transaction->status ? 'bg-success' : 'bg-warning';
-                    $text = $transaction && $transaction->status ? 'Paid' : 'Unpaid';
-                    return '<span class="badge '.$badge_class.'">'.$text.'</span>';
-                })
                 ->addColumn('status', function ($row) {
                     $badge_class = [
                         'Active' => 'bg-success',
@@ -62,23 +47,6 @@ class PropertyComplianceController extends Controller
                     return '<span class="badge '.$badge_class.'">'.$row->status.'</span>';
                 })
                 ->addColumn('action', function ($row) {
-                    // Check if payment is due
-                    $dueTransaction = Transaction::where('property_compliance_id', $row->id)
-                        ->where('transaction_type', 'due')
-                        ->first();
-                    
-                    $receiveBtn = '';
-                    if ($dueTransaction && !$dueTransaction->status) {
-                        $receiveBtn = '
-                            <li>
-                                <button class="dropdown-item receive-payment-btn" data-compliance-id="'.$row->id.'">
-                                    <i class="ri-money-pound-circle-fill align-bottom me-2 text-muted"></i> Receive Payment
-                                </button>
-                            </li>
-                            <li class="dropdown-divider"></li>
-                        ';
-                    }
-                    
                     return '
                         <div class="dropdown">
                             <button class="btn btn-soft-secondary btn-sm dropdown" type="button"
@@ -86,7 +54,6 @@ class PropertyComplianceController extends Controller
                                 <i class="ri-more-fill align-middle"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                '.$receiveBtn.'
                                 <li>
                                     <button class="dropdown-item" id="EditBtn" rid="'.$row->id.'">
                                         <i class="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit
@@ -105,11 +72,11 @@ class PropertyComplianceController extends Controller
                         </div>
                     ';
                 })
-                ->rawColumns(['property_name', 'compliance_type', 'certificate_number', 'cost', 'payment_status', 'status', 'action'])
+                ->rawColumns(['property_reference', 'compliance_type', 'certificate_number', 'status', 'action'])
                 ->make(true);
         }
 
-        $properties = Property::where('status', '!=', 'Maintenance')->get();
+        $properties = Property::latest()->get();
         $complianceTypes = ComplianceType::where('status', 1)->get();
         return view('admin.property-compliance.index', compact('properties', 'complianceTypes'));
     }
@@ -125,14 +92,15 @@ class PropertyComplianceController extends Controller
             'renewal_date' => 'nullable|date',
             'status' => 'required|in:Active,Expired,Renewed,Pending',
             'notes' => 'nullable',
-            'cost' => 'nullable|numeric|min:0',
-            'paid_by' => 'required|in:Landlord,Tenant'
+            'document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120'
         ]);
 
         DB::beginTransaction();
         try {
+            $property = Property::findOrFail($request->property_id);
             $data = new PropertyCompliance;
             $data->property_id = $request->property_id;
+            $data->landlord_id = $property->landlord_id ?? null;
             $data->compliance_type_id = $request->compliance_type_id;
             $data->certificate_number = $request->certificate_number;
             $data->issue_date = $request->issue_date;
@@ -140,43 +108,20 @@ class PropertyComplianceController extends Controller
             $data->renewal_date = $request->renewal_date;
             $data->status = $request->status;
             $data->notes = $request->notes;
-            $data->cost = $request->cost;
-            $data->paid_by = $request->paid_by;
             
+            /* ---------------------------------------------------
+                FILE UPLOADS (store as: /uploads/property-compliance/xxxx.pdf)
+            --------------------------------------------------- */
+            $uploadPath = 'uploads/property-compliance/';
+
             if ($request->hasFile('document')) {
                 $file = $request->file('document');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('compliance_documents', $fileName, 'public');
-                $data->document_path = $filePath;
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $data->document_path = '/' . $uploadPath . $filename;
             }
             
             $data->save();
-
-            if ($data->cost && $data->cost > 0) {
-                $property = Property::find($data->property_id);
-                $complianceType = ComplianceType::find($data->compliance_type_id);
-                
-                $transaction = new Transaction();
-                $transaction->tran_id = 'COMP-REC-' . time() . '-' . $data->id;
-                $transaction->date = now();
-                $transaction->property_compliance_id = $data->id;
-                $transaction->amount = $data->cost;
-                $transaction->transaction_type = 'due';
-                $transaction->status = false; // Always unpaid when created
-                $transaction->description = $complianceType->name . ' Certificate - Receivable from ' . $data->paid_by;
-                
-                if ($data->paid_by == 'Landlord') {
-                    $transaction->landlord_id = $property->landlord_id;
-                } else {
-                    $currentTenancy = Tenancy::where('property_id', $data->property_id)
-                        ->where('status', true)->first();
-                    if ($currentTenancy) {
-                        $transaction->tenant_id = $currentTenancy->tenant_id;
-                    }
-                }
-                
-                $transaction->save();
-            }
 
             DB::commit();
             
@@ -213,16 +158,14 @@ class PropertyComplianceController extends Controller
             'renewal_date' => 'nullable|date',
             'status' => 'required|in:Active,Expired,Renewed,Pending',
             'notes' => 'nullable',
-            'cost' => 'nullable|numeric|min:0',
-            'paid_by' => 'required|in:Landlord,Tenant'
+            'document' => 'nullable|mimes:jpg,jpeg,png,pdf|max:5120'
         ]);
 
         DB::beginTransaction();
         try {
             $data = PropertyCompliance::findOrFail($request->codeid);
-            $oldCost = $data->cost;
-            $oldPaidBy = $data->paid_by;
-            
+            $property = Property::findOrFail($request->property_id);
+            $data->landlord_id = $property->landlord_id ?? null;
             $data->property_id = $request->property_id;
             $data->compliance_type_id = $request->compliance_type_id;
             $data->certificate_number = $request->certificate_number;
@@ -231,76 +174,25 @@ class PropertyComplianceController extends Controller
             $data->renewal_date = $request->renewal_date;
             $data->status = $request->status;
             $data->notes = $request->notes;
-            $data->cost = $request->cost;
-            $data->paid_by = $request->paid_by;
+
+            /* ---------------------------------------------------
+                FILE UPLOADS (store as: /uploads/property-compliance/xxxx.pdf)
+            --------------------------------------------------- */
+            $uploadPath = 'uploads/property-compliance/';
 
             if ($request->hasFile('document')) {
-                if ($data->document_path && file_exists(public_path('storage/' . $data->document_path))) {
-                    unlink(public_path('storage/' . $data->document_path));
+                // Delete old file if exists
+                if ($data->document_path && file_exists(public_path($data->document_path))) {
+                    unlink(public_path($data->document_path));
                 }
                 
                 $file = $request->file('document');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('compliance_documents', $fileName, 'public');
-                $data->document_path = $filePath;
+                $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path($uploadPath), $filename);
+                $data->document_path = '/' . $uploadPath . $filename;
             }
 
             $data->save();
-
-            // Handle transaction updates
-            $existingTransaction = Transaction::where('property_compliance_id', $data->id)
-                ->where('transaction_type', 'due')
-                ->first();
-
-            if ($data->cost && $data->cost > 0) {
-                $property = Property::find($data->property_id);
-                $complianceType = ComplianceType::find($data->compliance_type_id);
-                
-                if ($existingTransaction) {
-                    $existingTransaction->amount = $data->cost;
-                    $existingTransaction->description = $complianceType->name . ' Certificate - Receivable from ' . $data->paid_by;
-                    
-                    if ($data->paid_by != $oldPaidBy) {
-                        if ($data->paid_by == 'Landlord') {
-                            $existingTransaction->landlord_id = $property->landlord_id;
-                            $existingTransaction->tenant_id = null;
-                        } else {
-                            $currentTenancy = Tenancy::where('property_id', $data->property_id)
-                                ->where('status', true)->first();
-                            $existingTransaction->tenant_id = $currentTenancy ? $currentTenancy->tenant_id : null;
-                            $existingTransaction->landlord_id = null;
-                        }
-                    }
-                    
-                    $existingTransaction->save();
-                } else {
-                    // Create new transaction if didn't exist
-                    $transaction = new Transaction();
-                    $transaction->tran_id = 'COMP-REC-' . time() . '-' . $data->id;
-                    $transaction->date = now();
-                    $transaction->property_compliance_id = $data->id;
-                    $transaction->amount = $data->cost;
-                    $transaction->transaction_type = 'due';
-                    $transaction->status = false; // Always unpaid when created
-                    $transaction->description = $complianceType->name . ' Certificate - Receivable from ' . $data->paid_by;
-                    
-                    if ($data->paid_by == 'Landlord') {
-                        $transaction->landlord_id = $property->landlord_id;
-                    } else {
-                        $currentTenancy = Tenancy::where('property_id', $data->property_id)
-                            ->where('status', true)->first();
-                        if ($currentTenancy) {
-                            $transaction->tenant_id = $currentTenancy->tenant_id;
-                        }
-                    }
-                    
-                    $transaction->save();
-                }
-            } else {
-                if ($existingTransaction) {
-                    $existingTransaction->delete();
-                }
-            }
 
             DB::commit();
             
@@ -328,15 +220,9 @@ class PropertyComplianceController extends Controller
                 ], 404);
             }
 
-            $transaction = Transaction::where('property_compliance_id', $data->id)
-                ->where('transaction_type', 'due')
-                ->first();
-            if ($transaction) {
-                $transaction->delete();
-            }
-
-            if ($data->document_path && file_exists(public_path('storage/' . $data->document_path))) {
-                unlink(public_path('storage/' . $data->document_path));
+            // Delete associated file
+            if ($data->document_path && file_exists(public_path($data->document_path))) {
+                unlink(public_path($data->document_path));
             }
 
             if ($data->delete()) {
@@ -369,71 +255,5 @@ class PropertyComplianceController extends Controller
             ]);
         }
         return response()->json(null, 404);
-    }
-
-    public function receivePayment(Request $request)
-    {
-        $request->validate([
-            'compliance_id' => 'required|exists:property_compliances,id',
-            'payment_date' => 'required|date',
-            'payment_type' => 'required|in:cash,bank,card,online',
-            'notes' => 'nullable'
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $compliance = PropertyCompliance::findOrFail($request->compliance_id);
-            
-            // Find the due transaction
-            $dueTransaction = Transaction::where('property_compliance_id', $compliance->id)
-                ->where('transaction_type', 'due')
-                ->first();
-
-            if (!$dueTransaction) {
-                return response()->json([
-                    'message' => 'No due transaction found for this compliance.'
-                ], 404);
-            }
-
-            if ($dueTransaction->status) {
-                return response()->json([
-                    'message' => 'Payment already received for this compliance.'
-                ], 400);
-            }
-
-            // Mark due transaction as paid
-            $dueTransaction->update(['status' => true]);
-
-            // Create received transaction
-            $receivedTransaction = new Transaction();
-            $receivedTransaction->tran_id = 'COMP-PAY-' . time() . '-' . $compliance->id;
-            $receivedTransaction->date = $request->payment_date;
-            $receivedTransaction->property_compliance_id = $compliance->id;
-            $receivedTransaction->amount = $dueTransaction->amount;
-            $receivedTransaction->payment_type = $request->payment_type;
-            $receivedTransaction->transaction_type = 'received';
-            $receivedTransaction->status = true;
-            $receivedTransaction->description = 'Payment received for ' . $dueTransaction->description;
-            $receivedTransaction->description = $request->notes;
-            
-            // Copy landlord/tenant from due transaction
-            $receivedTransaction->landlord_id = $dueTransaction->landlord_id;
-            $receivedTransaction->tenant_id = $dueTransaction->tenant_id;
-            
-            $receivedTransaction->save();
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Payment received successfully!',
-                'transaction' => $receivedTransaction
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-                'message' => 'Failed to process payment: ' . $e->getMessage()
-            ], 500);
-        }
     }
 }

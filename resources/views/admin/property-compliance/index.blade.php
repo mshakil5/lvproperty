@@ -31,7 +31,7 @@
                                 <select class="form-control select2" id="property_id" name="property_id">
                                     <option value="">Select Property</option>
                                     @foreach ($properties as $property)
-                                        <option value="{{ $property->id }}">{{ $property->property_name }} - {{ $property->address }}</option>
+                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -41,8 +41,8 @@
                                 <select class="form-control select2" id="compliance_type_id" name="compliance_type_id">
                                     <option value="">Select Compliance Type</option>
                                     @foreach ($complianceTypes as $type)
-                                        <option value="{{ $type->id }}" data-validity="{{ $type->validity_months }}" data-alert="{{ $type->alert_before_days }}">
-                                            {{ $type->name }} ({{ $type->validity_months }} months)
+                                        <option value="{{ $type->id }}">
+                                            {{ $type->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -78,23 +78,11 @@
                                 <input type="date" class="form-control" id="renewal_date" name="renewal_date">
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label">Cost (£)</label>
-                                <input type="number" step="0.01" class="form-control" id="cost" name="cost" placeholder="0.00">
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Paid By <span class="text-danger">*</span></label>
-                                <select class="form-control select2" id="paid_by" name="paid_by">
-                                    <option value="Landlord">Landlord</option>
-                                    <option value="Tenant">Tenant</option>
-                                </select>
-                            </div>
-
                             <div class="col-md-12">
-                                <label class="form-label">Certificate Document</label>
+                                <label class="form-label">Certificate Document (Max Size: 5MB)</label>
                                 <input type="file" class="form-control" id="document" name="document" accept=".pdf,.jpg,.jpeg,.png">
-                                <small class="text-muted">Upload PDF, JPG, or PNG files</small>
+                                <small class="text-muted">Upload PDF, JPG, or PNG files (Max: 5MB)</small>
+                                <div id="document_link" class="mt-1"></div>
                             </div>
 
                             <div class="col-md-12">
@@ -132,53 +120,11 @@
                         <th>Certificate No</th>
                         <th>Issue Date</th>
                         <th>Expiry Date</th>
-                        <th>Cost</th>
-                        <th>Payment</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
             </table>
-        </div>
-    </div>
-</div>
-
-<!-- Receive Payment Modal -->
-<div class="modal fade" id="receivePaymentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Receive Payment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="receivePaymentForm">
-                <div class="modal-body">
-                    @csrf
-                    <input type="hidden" id="compliance_id" name="compliance_id">
-                    
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Payment Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="payment_date" value="{{ date('Y-m-d') }}" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Payment Type <span class="text-danger">*</span></label>
-                            <select class="form-control" name="payment_type" required>
-                                <option value="cash">Cash</option>
-                                <option value="bank">Bank</option>
-                            </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" name="notes" rows="3" placeholder="Any additional notes"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Receive Payment</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -202,8 +148,8 @@
                     searchable: false
                 },
                 {
-                    data: 'property_name',
-                    name: 'property_name',
+                    data: 'property_reference',
+                    name: 'property_reference',
                     orderable: false,
                     searchable: false
                 },
@@ -232,18 +178,6 @@
                     searchable: false
                 },
                 {
-                    data: 'cost',
-                    name: 'cost',
-                    orderable: false,
-                    searchable: false
-                },
-                {
-                    data: 'payment_status',
-                    name: 'payment_status',
-                    orderable: false,
-                    searchable: false
-                },
-                {
                     data: 'status',
                     name: 'status',
                     orderable: false,
@@ -256,56 +190,6 @@
                     searchable: false
                 }
             ]
-        });
-
-        // Auto-calculate expiry date when issue date changes
-        $(document).on('change', '#compliance_type_id, #issue_date', function() {
-            var complianceTypeId = $('#compliance_type_id').val();
-            var issueDate = $('#issue_date').val();
-            
-            if (complianceTypeId && issueDate) {
-                var selectedOption = $('#compliance_type_id option:selected');
-                var validityMonths = selectedOption.data('validity');
-                
-                if (validityMonths && issueDate) {
-                    var issueDateObj = new Date(issueDate);
-                    var expiryDateObj = new Date(issueDateObj);
-                    expiryDateObj.setMonth(expiryDateObj.getMonth() + parseInt(validityMonths));
-                    
-                    var expiryDate = expiryDateObj.toISOString().split('T')[0];
-                    $('#expiry_date').val(expiryDate);
-                }
-            }
-        });
-
-        // Receive Payment
-        $(document).on('click', '.receive-payment-btn', function() {
-            var complianceId = $(this).data('compliance-id');
-            $('#compliance_id').val(complianceId);
-            $('#receivePaymentModal').modal('show');
-        });
-
-        // Submit Payment Form
-        $('#receivePaymentForm').submit(function(e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-
-            $.ajax({
-                url: "{{ route('property-compliance.receive-payment') }}",
-                method: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    $('#receivePaymentModal').modal('hide');
-                    reloadTable('#propertyComplianceTable');
-                    showSuccess(response.message);
-                },
-                error: function(xhr) {
-                    let error = xhr.responseJSON?.message || 'Failed to process payment';
-                    showError(error);
-                }
-            });
         });
 
     });
@@ -347,8 +231,6 @@
                 form_data.append("renewal_date", $("#renewal_date").val());
                 form_data.append("status", $("#status").val());
                 form_data.append("notes", $("#notes").val());
-                form_data.append("cost", $("#cost").val());
-                form_data.append("paid_by", $("#paid_by").val());
                 
                 // Append file if selected
                 var documentFile = $('#document')[0].files[0];
@@ -395,8 +277,6 @@
                 form_data.append("renewal_date", $("#renewal_date").val());
                 form_data.append("status", $("#status").val());
                 form_data.append("notes", $("#notes").val());
-                form_data.append("cost", $("#cost").val());
-                form_data.append("paid_by", $("#paid_by").val());
                 form_data.append("codeid", $("#codeid").val());
                 
                 // Append file if selected
@@ -457,8 +337,14 @@
             $("#renewal_date").val(data.renewal_date);
             $("#status").val(data.status).trigger('change');
             $("#notes").val(data.notes);
-            $("#cost").val(data.cost);
-            $("#paid_by").val(data.paid_by).trigger('change');
+            
+            // Show document preview link if exists
+            if (data.document_path) {
+                $("#document_link").html('<a href="'+data.document_path+'" target="_blank" class="btn btn-sm btn-outline-primary">View Current Document</a>');
+            } else {
+                $("#document_link").html('');
+            }
+            
             $("#codeid").val(data.id);
             $("#addBtn").val('Update');
             $("#addBtn").html('Update');
@@ -471,6 +357,7 @@
             $("#addBtn").val('Create');
             $("#addBtn").html('Create');
             $("#cardTitle").text('Add new Compliance');
+            $("#document_link").html('');
             
             // Clear Select2
             $('.select2').val(null).trigger('change');
