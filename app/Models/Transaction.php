@@ -11,6 +11,10 @@ class Transaction extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'received_ids' => 'array',
+    ];
+
     public function tenancy()
     {
         return $this->belongsTo(Tenancy::class);
@@ -31,8 +35,21 @@ class Transaction extends Model
         return $this->belongsTo(Property::class);
     }
 
-    public function expense()
+    // Total received for this due (sum of all related payments)
+    public function getReceivedAmountAttribute($value)
     {
-        return $this->belongsTo(Expense::class);
+        return $value ?? 0;
+    }
+
+    // Remaining due for this transaction
+    public function getRemainingDueAttribute()
+    {
+        return max(0, $this->amount - $this->received_amount);
+    }
+
+    // For view: all dues linked to this received transaction
+    public function paidDues()
+    {
+        return $this->hasMany(Transaction::class, 'received_ids'); // JSON handled in controller
     }
 }

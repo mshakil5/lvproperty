@@ -14,49 +14,27 @@ class IncomeController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $incomes = Transaction::with(['property', 'tenant', 'landlord'])
-                ->where('transaction_type', 'received')
-                ->select(['id', 'tran_id', 'date', 'property_id', 'tenant_id', 'landlord_id', 'amount', 'payment_type', 'description', 'status', 'created_at'])
+            $incomes = Transaction::with(['property', 'tenant'])
+                ->where('transaction_type', 'due')
+                ->where('received_amount', '>', 0)
                 ->orderBy('id', 'desc');
 
             return DataTables::of($incomes)
                 ->addIndexColumn()
-                ->addColumn('property_reference', function ($row) {
-                    return $row->property ? $row->property->property_reference : '<span class="text-muted">N/A</span>';
-                })
-                ->addColumn('tenant_name', function ($row) {
-                    return $row->tenant ? $row->tenant->name : '<span class="text-muted">N/A</span>';
-                })
-                ->addColumn('date', function ($row) {
-                    return $row->date ? date('d M, Y', strtotime($row->date)) : 'N/A';
-                })
-                ->addColumn('amount', function ($row) {
-                    return '£' . number_format($row->amount, 2);
-                })
-                ->addColumn('payment_type', function ($row) {
-                    $badge_class = [
-                        'cash' => 'bg-success',
-                        'bank' => 'bg-primary', 
-                        'card' => 'bg-info',
-                        'online' => 'bg-warning'
-                    ][$row->payment_type] ?? 'bg-secondary';
-                    
-                    return '<span class="badge '.$badge_class.'">'.ucfirst($row->payment_type).'</span>';
-                })
-                ->addColumn('status', function ($row) {
-                    $badge_class = $row->status ? 'bg-success' : 'bg-danger';
-                    $status_text = $row->status ? 'Completed' : 'Pending';
-                    return '<span class="badge '.$badge_class.'">'.$status_text.'</span>';
-                })
-                ->addColumn('action', function ($row) {
-                    return '
-                        <button class="btn btn-soft-primary btn-sm view-income-details" 
-                                data-income-id="'.$row->id.'">
-                            <i class="ri-eye-fill align-middle"></i> View
-                        </button>
-                    ';
-                })
-                ->rawColumns(['property_reference', 'tenant_name', 'amount', 'payment_type', 'status', 'action'])
+                ->addColumn('date', fn($row) => $row->date ? date('d M, Y', strtotime($row->date)) : 'N/A')
+                ->addColumn('amount', fn($row) => '£' . number_format($row->received_amount, 2)) // show received_amount
+                ->addColumn('action', fn($row) => '
+                    <button class="btn btn-soft-primary btn-sm view-income-details" data-income-id="' . $row->id . '">
+                        <i class="ri-eye-fill align-middle"></i> View
+                    </button>
+                ')
+                ->addColumn('property', fn ($row) =>
+                    $row->property?->property_reference ?? 'N/A'
+                )
+                ->addColumn('tenant', fn ($row) =>
+                    $row->tenant?->name ?? 'N/A'
+                )
+                ->rawColumns(['action'])
                 ->make(true);
         }
 
@@ -71,129 +49,106 @@ class IncomeController extends Controller
 
     public function getDueTransactions(Request $request)
     {
-        $dueTransactions = Transaction::with(['property', 'tenant'])
+        $dues = Transaction::with(['property', 'tenant'])
             ->where('transaction_type', 'due')
             ->where('status', false)
-            ->when($request->property_id, function($query) use ($request) {
-                return $query->where('property_id', $request->property_id);
-            })
-            ->select(['id', 'tran_id', 'date', 'property_id', 'tenant_id', 'amount', 'description'])
+            ->when($request->property_id, fn($q) => $q->where('property_id', $request->property_id))
             ->get()
-            ->map(function($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'tran_id' => $transaction->tran_id,
-                    'date' => date('d M, Y', strtotime($transaction->date)),
-                    'property_reference' => $transaction->property ? $transaction->property->property_reference : 'N/A',
-                    'tenant_name' => $transaction->tenant ? $transaction->tenant->name : 'N/A',
-                    'amount' => '£' . number_format($transaction->amount, 2),
-                    'raw_amount' => $transaction->amount,
-                    'description' => $transaction->description
-                ];
-            });
+            ->filter(fn($d) => $d->remaining_due > 0)
+            ->map(fn($d) => [
+                'id' => $d->id,
+                'tran_id' => $d->tran_id,
+                'property_reference' => $d->property?->property_reference ?? 'N/A',
+                'tenant_name' => $d->tenant?->name ?? 'N/A',
+                'amount' => '£' . number_format($d->remaining_due, 2),
+                'raw_amount' => $d->remaining_due,
+            ])
+            ->values();
 
-        return response()->json($dueTransactions);
+        return response()->json($dues);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'property_id' => 'required|exists:properties,id',
             'date' => 'required|date',
-            'payment_type' => 'required|in:cash,bank,card,online',
+            'payment_type' => 'required',
             'selected_transactions' => 'required|array|min:1',
-            'selected_transactions.*' => 'exists:transactions,id',
             'total_amount' => 'required|numeric|min:0.01',
-            'description' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
 
         try {
-            $dueTransactions = Transaction::whereIn('id', $request->selected_transactions)
+            $dues = Transaction::whereIn('id', $request->selected_transactions)
                 ->where('transaction_type', 'due')
                 ->where('status', false)
+                ->orderBy('id')
                 ->get();
 
-            if ($dueTransactions->count() !== count($request->selected_transactions)) {
-                return response()->json([
-                    'message' => 'Some selected transactions are invalid or already paid.'
-                ], 422);
-            }
+            $received = Transaction::create([
+                'tran_id' => 'INC-' . time(),
+                'date' => $request->date,
+                'amount' => $request->total_amount,
+                'payment_type' => $request->payment_type,
+                'transaction_type' => 'received',
+                'status' => true,
+                'description' => 'Payment received'
+            ]);
 
-            $calculatedTotal = $dueTransactions->sum('amount');
-            if ($calculatedTotal != $request->total_amount) {
-                return response()->json([
-                    'message' => 'Total amount mismatch. Please refresh and try again.'
-                ], 422);
-            }
+            $remaining = $request->total_amount;
 
-            $receivedTransaction = new Transaction();
-            $receivedTransaction->tran_id = 'INC-' . time() . '-' . rand(1000, 9999);
-            $receivedTransaction->date = $request->date;
-            $receivedTransaction->property_id = $request->property_id;
-            $receivedTransaction->amount = $request->total_amount;
-            $receivedTransaction->payment_type = $request->payment_type;
-            $receivedTransaction->transaction_type = 'received';
-            $receivedTransaction->status = true;
-            $receivedTransaction->description = $request->description ?: 'Payment received for selected dues';
-            $receivedTransaction->save();
+            foreach ($dues as $due) {
+                if ($remaining <= 0) break;
 
-            foreach ($dueTransactions as $dueTransaction) {
-                $dueTransaction->status = true;
-                $dueTransaction->received_id = $receivedTransaction->id;
-                $dueTransaction->save();
+                $pay = min($remaining, $due->remaining_due);
+
+                $received_ids = $due->received_ids ?? [];
+                $received_ids[] = ['id' => $received->id, 'amount' => $pay];
+
+                $due->update([
+                    'received_amount' => $due->received_amount + $pay,
+                    'received_ids' => $received_ids,
+                    'status' => ($due->received_amount + $pay) >= $due->amount,
+                ]);
+
+                $remaining -= $pay;
             }
 
             DB::commit();
-
-            return response()->json([
-                'message' => 'Payment received successfully!',
-                'received_transaction' => $receivedTransaction,
-                'paid_transactions_count' => $dueTransactions->count()
-            ], 200);
-
+            return response()->json(['message' => 'Payment received successfully']);
         } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json([
-                'message' => 'Failed to process payment: ' . $e->getMessage()
-            ], 500);
+            DB::rollBack();
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 
     public function getIncomeDetails($id)
     {
-        $income = Transaction::with(['property', 'tenant', 'landlord'])
-            ->where('id', $id)
-            ->where('transaction_type', 'received')
-            ->firstOrFail();
+        $due = Transaction::where('id', $id)->firstOrFail();
 
-        $paidTransactions = Transaction::with(['property', 'tenant'])
-            ->where('received_id', $id)
-            ->where('transaction_type', 'due')
-            ->get()
-            ->map(function($transaction) {
-                return [
-                    'tran_id' => $transaction->tran_id,
-                    'date' => date('d M, Y', strtotime($transaction->date)),
-                    'property_reference' => $transaction->property ? $transaction->property->property_reference : 'N/A',
-                    'tenant_name' => $transaction->tenant ? $transaction->tenant->name : 'N/A',
-                    'amount' => '£' . number_format($transaction->amount, 2),
-                    'description' => $transaction->description
-                ];
-            });
+        // Show all received transactions linked to this due
+        $receivedList = collect($due->received_ids ?? [])->map(fn($r) => Transaction::find($r['id']))
+            ->filter()
+            ->map(fn($r) => [
+                'tran_id' => $r->tran_id,
+                'date' => date('d M, Y', strtotime($r->date)),
+                'amount' => '£' . number_format(array_reduce($due->received_ids ?? [], fn($carry, $ri) => $ri['id'] == $r->id ? $ri['amount'] : $carry, 0), 2),
+                'payment_type' => ucfirst($r->payment_type),
+            ]);
 
         return response()->json([
             'income' => [
-                'tran_id' => $income->tran_id,
-                'date' => date('d M, Y', strtotime($income->date)),
-                'property_reference' => $income->property ? $income->property->property_reference : 'N/A',
-                'amount' => '£' . number_format($income->amount, 2),
-                'payment_type' => ucfirst($income->payment_type),
-                'description' => $income->description,
-                'created_at' => $income->created_at->format('d M, Y h:i A')
+                'tran_id' => $due->tran_id,
+                'date' => date('d M, Y', strtotime($due->date)),
+                'property_reference' => $due->property?->property_reference ?? 'N/A',
+                'tenant_name' => $due->tenant?->name ?? 'N/A',
+                'total_amount' => '£' . number_format($due->amount, 2),
+                'received_amount' => '£' . number_format($due->received_amount, 2),
+                'remaining_due' => '£' . number_format($due->remaining_due, 2),
+                'status' => $due->status ? 'Paid' : 'Due',
             ],
-            'paid_transactions' => $paidTransactions
+            'received_transactions' => $receivedList
         ]);
     }
 }

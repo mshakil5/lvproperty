@@ -148,6 +148,7 @@ class HomeController extends Controller
         $tables = [
             'compliance_types',
             'expenses',
+            'incomes',
             'landlords',
             'properties',
             'property_compliances',

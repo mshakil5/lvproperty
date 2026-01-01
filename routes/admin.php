@@ -122,9 +122,6 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::post('/tenant-renew', [TenantController::class, 'renewTenancy'])->name('tenant.renew');
     Route::post('/tenant-terminate', [TenantController::class, 'terminateTenancy']);
 
-    Route::get('/tenant/{id}/transactions', [TenantController::class, 'getTenantTransactions'])->name('tenant.transactions');
-    Route::post('/tenant/receive-payment', [TenantController::class, 'receivePayment'])->name('tenant.receive-payment');
-
     Route::get('/compliance-type', [ComplianceTypeController::class, 'index'])->name('allcompliance-type');
     Route::post('/compliance-type', [ComplianceTypeController::class, 'store'])->name('compliance-type.store');
     Route::get('/compliance-type/{id}/edit', [ComplianceTypeController::class, 'edit'])->name('compliance-type.edit');
