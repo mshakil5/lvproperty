@@ -13,6 +13,15 @@ return new class extends Migration
     {
         // Step 1: Add received_amount
         Schema::table('transactions', function (Blueprint $table) {
+
+            if (!Schema::hasColumn('transactions', 'income_id')) {
+                $table->foreignId('income_id')
+                    ->nullable()
+                    ->after('property_id')
+                    ->constrained('incomes')
+                    ->nullOnDelete();
+            }
+
             if (!Schema::hasColumn('transactions', 'received_amount')) {
                 $table->decimal('received_amount', 10, 2)->default(0)->after('amount');
             }
@@ -38,6 +47,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('transactions', function (Blueprint $table) {
+
+            if (Schema::hasColumn('transactions', 'income_id')) {
+                $table->dropForeign(['income_id']);
+                $table->dropColumn('income_id');
+            }
+
             // Drop columns only if they exist
             if (Schema::hasColumn('transactions', 'received_amount')) {
                 $table->dropColumn('received_amount');

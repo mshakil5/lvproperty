@@ -23,25 +23,26 @@
                         @csrf
 
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Select Property <span class="text-danger">*</span></label>
-                                <select class="form-control select2" id="property_id" name="property_id" required>
-                                    <option value="">Select Property</option>
-                                    @foreach ($properties as $property)
-                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
+                            <div class="col-md-4">
+                                <label class="form-label">Income Category <span class="text-danger">*</span></label>
+                                <select class="form-control select2" id="income_id" name="income_id" required>
+                                    <option value="">Select Income Category</option>
+                                    @foreach ($incomes as $income)
+                                        <option value="{{ $income->id }}">{{ $income->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Payment Date <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" id="date" name="date"
                                     value="{{ date('Y-m-d') }}" required>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Payment Type <span class="text-danger">*</span></label>
                                 <select class="form-control select2" id="payment_type" name="payment_type" required>
+                                    <option value="">Select Payment Type</option>
                                     <option value="cash">Cash</option>
                                     <option value="bank">Bank Transfer</option>
                                 </select>
@@ -55,13 +56,23 @@
                                         id="selectedTotal">£0.00</strong></small>
                             </div>
 
+                            <div class="col-md-6">
+                                <label class="form-label">Select Property <span class="text-danger" id="propertyRequired"></span></label>
+                                <select class="form-control select2" id="property_id" name="property_id">
+                                    <option value="">Select Property</option>
+                                    @foreach ($properties as $property)
+                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div class="col-12">
                                 <label class="form-label">Description</label>
                                 <textarea class="form-control" id="description" name="description" rows="3"
                                     placeholder="Payment description (optional)"></textarea>
                             </div>
 
-                            <div class="col-12">
+                            <div class="col-12" id="dueTransactionsSection" style="display: none;">
                                 <div class="card">
                                     <div class="card-header">
                                         <h5 class="card-title mb-0">Select Due Transactions</h5>
@@ -100,24 +111,70 @@
         let selectedTransactions = [];
 
         $(document).ready(function() {
+            
+            // When income category changes
+            $('#income_id').change(function() {
+                var incomeId = $(this).val();
+                var selectedOption = $(this).find('option:selected');
+                var incomeName = selectedOption.text().toLowerCase();
+
+                selectedTransactions = [];
+                updateSelectedTotal();
+
+                if (!incomeId) {
+                    $('#dueTransactionsSection').hide();
+                    $('#property_id').prop('required', false);
+                    $('#propertyRequired').html('');
+                    return;
+                }
+
+                // Only show dues selector and make property required if income is "rent"
+                if (incomeName.includes('rent')) {
+                    $('#dueTransactionsSection').show();
+                    $('#property_id').prop('required', true);
+                    $('#propertyRequired').html('<span class="text-danger">*</span>');
+                    $('#dueTransactionsContainer').html(`
+                        <div class="text-center text-muted py-4">
+                            <i class="ri-search-line display-4"></i>
+                            <p class="mt-2">Select a property to view due transactions</p>
+                        </div>
+                    `);
+                } else {
+                    $('#dueTransactionsSection').hide();
+                    $('#property_id').prop('required', false);
+                    $('#propertyRequired').html('');
+                    $('#dueTransactionsContainer').html('');
+                }
+            });
+
+            // When property changes (only for rent)
             $('#property_id').change(function() {
                 var propertyId = $(this).val();
-                if (propertyId) {
-                    loadDueTransactions(propertyId);
+                var incomeId = $('#income_id').val();
+                var selectedOption = $('#income_id').find('option:selected');
+                var incomeName = selectedOption.text().toLowerCase();
+
+                if (incomeName.includes('rent') && propertyId) {
+                    loadDueTransactions(propertyId, incomeId);
                 } else {
                     $('#dueTransactionsContainer').html(`
-                    <div class="text-center text-muted py-4">
-                        <i class="ri-search-line display-4"></i>
-                        <p class="mt-2">Select a property to view due transactions</p>
-                    </div>
-                `);
+                        <div class="text-center text-muted py-4">
+                            <i class="ri-search-line display-4"></i>
+                            <p class="mt-2">Select a property to view due transactions</p>
+                        </div>
+                    `);
+                    selectedTransactions = [];
                     updateSelectedTotal();
                 }
             });
 
             $("#addBtn").click(function() {
-                if (selectedTransactions.length === 0) {
-                    showError('Please select at least one due transaction');
+                var incomeId = $('#income_id').val();
+                var selectedOption = $('#income_id').find('option:selected');
+                var incomeName = selectedOption.text().toLowerCase();
+
+                if (!incomeId) {
+                    showError('Please select an income category');
                     return;
                 }
 
@@ -126,16 +183,24 @@
                     return;
                 }
 
-                const enteredAmount = parseFloat($("#total_amount").val());
-                const selectedTotal = parseFloat($('#selectedTotal').text().replace('£', ''));
+                if (incomeName.includes('rent')) {
+                    if (selectedTransactions.length === 0) {
+                        showError('Please select at least one due transaction');
+                        return;
+                    }
 
-                if (enteredAmount > selectedTotal) {
-                    showError('Payment amount cannot be more than the total selected transactions (£' + selectedTotal.toFixed(2) + ')');
-                    return;
+                    const enteredAmount = parseFloat($("#total_amount").val());
+                    const selectedTotal = parseFloat($('#selectedTotal').text().replace('£', ''));
+
+                    if (enteredAmount > selectedTotal) {
+                        showError('Payment amount cannot be more than the total selected transactions (£' + selectedTotal.toFixed(2) + ')');
+                        return;
+                    }
                 }
 
                 var form_data = new FormData();
                 form_data.append("_token", "{{ csrf_token() }}");
+                form_data.append("income_id", incomeId);
                 form_data.append("property_id", $("#property_id").val());
                 form_data.append("date", $("#date").val());
                 form_data.append("payment_type", $("#payment_type").val());
@@ -171,10 +236,12 @@
                 });
             });
 
-            function loadDueTransactions(propertyId) {
+            function loadDueTransactions(propertyId, incomeId) {
                 $.get("{{ route('income.due-transactions') }}", {
-                    property_id: propertyId
+                    property_id: propertyId,
+                    income_id: incomeId
                 }, function(response) {
+                    console.log(response);
                     if (response.length > 0) {
                         let html = '<div class="row">';
                         response.forEach((transaction, index) => {

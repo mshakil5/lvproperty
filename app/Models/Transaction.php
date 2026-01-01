@@ -10,6 +10,7 @@ class Transaction extends Model
     use HasFactory;
 
     protected $guarded = [];
+    protected $appends = ['remaining_due', 'is_rent'];
 
     protected $casts = [
         'received_ids' => 'array',
@@ -51,5 +52,15 @@ class Transaction extends Model
     public function paidDues()
     {
         return $this->hasMany(Transaction::class, 'received_ids'); // JSON handled in controller
+    }
+
+    public function income()
+    {
+        return $this->belongsTo(Income::class);
+    }
+
+    public function getIsRentAttribute()
+    {
+        return strtolower($this->income?->name ?? '') === 'rent';
     }
 }

@@ -80,6 +80,8 @@ $(document).ready(function() {
         var url = "{{ route('income.details', ':id') }}".replace(':id', incomeId);
 
         $.get(url, function(res) {
+            console.log(res);
+            // return;
 
             const list = res.received_transactions || [];
 

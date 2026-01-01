@@ -8,16 +8,28 @@ use App\Models\Transaction;
 use App\Models\Property;
 use DataTables;
 use Illuminate\Support\Facades\DB;
+use App\Models\Income;
 
 class IncomeController extends Controller
 {
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $incomes = Transaction::with(['property', 'tenant'])
-                ->where('transaction_type', 'due')
-                ->where('received_amount', '>', 0)
-                ->orderBy('id', 'desc');
+        $incomes = Transaction::with(['property', 'tenant', 'income'])
+            ->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->where('transaction_type', 'due')
+                       ->where('received_amount', '>', 0);
+                })
+                ->orWhere(function ($q2) {
+                    $q2->where('transaction_type', 'received')
+                    ->whereHas('income', function ($iq) {
+                        $iq->whereRaw('LOWER(name) != ?', ['rent']);
+                    });
+                });
+                
+            })
+            ->orderBy('id', 'desc');
 
             return DataTables::of($incomes)
                 ->addIndexColumn()
@@ -43,8 +55,9 @@ class IncomeController extends Controller
 
     public function create()
     {
-        $properties = Property::where('status', 1)->get();
-        return view('admin.income.create', compact('properties'));
+        $properties = Property::where('status', 1)->latest()->get();
+        $incomes = Income::where('status', 1)->latest()->get();
+        return view('admin.income.create', compact('properties', 'incomes'));
     }
 
     public function getDueTransactions(Request $request)
@@ -70,30 +83,88 @@ class IncomeController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'date' => 'required|date',
-            'payment_type' => 'required',
-            'selected_transactions' => 'required|array|min:1',
-            'total_amount' => 'required|numeric|min:0.01',
-        ]);
+        $income = Income::find($request->income_id);
+        $isRent = strtolower($income->name) === 'rent';
+
+        if ($isRent) {
+            $request->validate([
+                'income_id' => 'required|exists:incomes,id',
+                'property_id' => 'required|exists:properties,id',
+                'date' => 'required|date',
+                'payment_type' => 'required',
+                'selected_transactions' => 'required|array|min:1',
+                'total_amount' => 'required|numeric|min:0.01',
+            ]);
+        } else {
+            $request->validate([
+                'income_id' => 'required|exists:incomes,id',
+                'date' => 'required|date',
+                'payment_type' => 'required',
+                'total_amount' => 'required|numeric|min:0.01',
+            ]);
+        }
 
         DB::beginTransaction();
 
         try {
+            if (!$isRent) {
+                $receivedData = [
+                    'tran_id' => 'INC-' . time() . '-' . rand(1000, 9999),
+                    'date' => $request->date,
+                    'amount' => $request->total_amount,
+                    'received_amount' => $request->total_amount,
+                    'payment_type' => $request->payment_type,
+                    'transaction_type' => 'received',
+                    'status' => true,
+                    'income_id' => $request->income_id,
+                    'description' => $request->description ?? 'Payment received'
+                ];
+
+                // If property is selected, get tenant/landlord from last transaction of that property
+                if ($request->property_id) {
+                    $lastTransaction = Transaction::where('property_id', $request->property_id)
+                        ->latest()
+                        ->first();
+
+                    $receivedData['property_id'] = $request->property_id;
+                    $receivedData['tenant_id'] = $lastTransaction?->tenant_id;
+                    $receivedData['landlord_id'] = $lastTransaction?->landlord_id;
+                    $receivedData['tenancy_id'] = $lastTransaction?->tenancy_id;
+                }
+
+                $received = Transaction::create($receivedData);
+
+                DB::commit();
+                return response()->json(['message' => 'Payment received successfully']);
+            }
+
+            // If RENT - Process with dues
             $dues = Transaction::whereIn('id', $request->selected_transactions)
                 ->where('transaction_type', 'due')
                 ->where('status', false)
                 ->orderBy('id')
                 ->get();
 
+            if ($dues->isEmpty()) {
+                return response()->json(['message' => 'No valid dues selected'], 422);
+            }
+
+            // Get tenant_id, landlord_id, property_id, tenancy_id from first due
+            $firstDue = $dues->first();
+
             $received = Transaction::create([
-                'tran_id' => 'INC-' . time(),
+                'tran_id' => 'INC-' . time() . '-' . rand(1000, 9999),
                 'date' => $request->date,
                 'amount' => $request->total_amount,
                 'payment_type' => $request->payment_type,
                 'transaction_type' => 'received',
                 'status' => true,
-                'description' => 'Payment received'
+                'income_id' => $request->income_id,
+                'property_id' => $request->property_id,
+                'tenant_id' => $firstDue->tenant_id,
+                'landlord_id' => $firstDue->landlord_id,
+                'tenancy_id' => $firstDue->tenancy_id,
+                'description' => $request->description ?? 'Payment received'
             ]);
 
             $remaining = $request->total_amount;
@@ -117,6 +188,7 @@ class IncomeController extends Controller
 
             DB::commit();
             return response()->json(['message' => 'Payment received successfully']);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 500);
@@ -125,28 +197,48 @@ class IncomeController extends Controller
 
     public function getIncomeDetails($id)
     {
-        $due = Transaction::where('id', $id)->firstOrFail();
+        $trx = Transaction::with(['property', 'tenant', 'income'])->findOrFail($id);
 
-        // Show all received transactions linked to this due
-        $receivedList = collect($due->received_ids ?? [])->map(fn($r) => Transaction::find($r['id']))
-            ->filter()
-            ->map(fn($r) => [
-                'tran_id' => $r->tran_id,
-                'date' => date('d M, Y', strtotime($r->date)),
-                'amount' => '£' . number_format(array_reduce($due->received_ids ?? [], fn($carry, $ri) => $ri['id'] == $r->id ? $ri['amount'] : $carry, 0), 2),
-                'payment_type' => ucfirst($r->payment_type),
-            ]);
+        // Build received transactions list
+        $receivedList = [];
+
+        if (!empty($trx->received_ids)) {
+            // If received_ids exist, map them
+            $receivedList = collect($trx->received_ids)->map(function($r) use ($trx) {
+                $rTransaction = Transaction::find($r['id']);
+                if (!$rTransaction) return null;
+
+                $amount = array_reduce($trx->received_ids ?? [], function($carry, $ri) use ($rTransaction) {
+                    return $ri['id'] == $rTransaction->id ? $ri['amount'] : $carry;
+                }, 0);
+
+                return [
+                    'tran_id' => $rTransaction->tran_id,
+                    'date' => date('d M, Y', strtotime($rTransaction->date)),
+                    'amount' => '£' . number_format($amount, 2),
+                    'payment_type' => ucfirst($rTransaction->payment_type),
+                ];
+            })->filter()->values();
+        } else {
+            // If no received_ids (like non-rent single payment), just return this transaction
+            $receivedList[] = [
+                'tran_id' => $trx->tran_id,
+                'date' => date('d M, Y', strtotime($trx->date)),
+                'amount' => '£' . number_format($trx->received_amount, 2),
+                'payment_type' => ucfirst($trx->payment_type),
+            ];
+        }
 
         return response()->json([
             'income' => [
-                'tran_id' => $due->tran_id,
-                'date' => date('d M, Y', strtotime($due->date)),
-                'property_reference' => $due->property?->property_reference ?? 'N/A',
-                'tenant_name' => $due->tenant?->name ?? 'N/A',
-                'total_amount' => '£' . number_format($due->amount, 2),
-                'received_amount' => '£' . number_format($due->received_amount, 2),
-                'remaining_due' => '£' . number_format($due->remaining_due, 2),
-                'status' => $due->status ? 'Paid' : 'Due',
+                'tran_id' => $trx->tran_id,
+                'date' => date('d M, Y', strtotime($trx->date)),
+                'property_reference' => $trx->property?->property_reference ?? 'N/A',
+                'tenant_name' => $trx->tenant?->name ?? 'N/A',
+                'total_amount' => '£' . number_format($trx->amount, 2),
+                'received_amount' => '£' . number_format($trx->received_amount, 2),
+                'remaining_due' => '£' . number_format($trx->remaining_due, 2),
+                'status' => $trx->status ? 'Paid' : 'Due',
             ],
             'received_transactions' => $receivedList
         ]);
