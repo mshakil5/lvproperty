@@ -141,10 +141,29 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="{{ route('income.index') }}" class="nav-link {{ Route::is('income.index') ? 'active' : '' }}">
-                        <i class="ri-wallet-3-line"></i>
-                        <span>Income</span>
+                    <a class="nav-link menu-link {{ Request::is('admin/income*') ? 'active' : '' }}" 
+                    href="#sidebarIncomes" data-bs-toggle="collapse" role="button" 
+                    aria-expanded="{{ Request::is('admin/income*') ? 'true' : 'false' }}" 
+                    aria-controls="sidebarIncomes">
+                        <i class="ri-wallet-3-line"></i> <span>Income</span>
                     </a>
+
+                    <div class="collapse menu-dropdown {{ Request::is('admin/income*') ? 'show' : '' }}" id="sidebarIncomes">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a href="{{ route('income.index') }}" 
+                                class="nav-link {{ Request::is('admin/income') ? 'active' : '' }}">
+                                Income
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('allincome') }}" 
+                                class="nav-link {{ Request::is('admin/income-category*') ? 'active' : '' }}">
+                                Income Category
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 
                 <li class="nav-item">

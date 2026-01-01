@@ -60,8 +60,13 @@ class IncomeController extends Controller
                 ->make(true);
         }
 
+        return view('admin.income.index');
+    }
+
+    public function create()
+    {
         $properties = Property::where('status', 1)->get();
-        return view('admin.income.index', compact('properties'));
+        return view('admin.income.create', compact('properties'));
     }
 
     public function getDueTransactions(Request $request)

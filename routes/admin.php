@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\PropertyComplianceController;
 use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\ExpenseTransactionController;
 use App\Http\Controllers\Admin\IncomeController;
+use App\Http\Controllers\Admin\IncomeCategoryController;
 
 Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], function(){
     Route::get('/dashboard', [HomeController::class, 'adminHome'])->name('admin.dashboard');
@@ -153,8 +154,17 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::delete('/expenses/{id}', [ExpenseTransactionController::class, 'delete'])->name('expenses.delete');
     Route::post('/expenses-status', [ExpenseTransactionController::class, 'toggleStatus'])->name('expenses.status');
 
+    // Income Category
+    Route::get('/income-category', [IncomeCategoryController::class, 'index'])->name('allincome');
+    Route::post('/income-category', [IncomeCategoryController::class, 'store'])->name('income-category.store');
+    Route::get('/income-category/{id}/edit', [IncomeCategoryController::class, 'edit']);
+    Route::post('/income-category-update', [IncomeCategoryController::class, 'update']);
+    Route::delete('/income-category/{id}', [IncomeCategoryController::class, 'delete'])->name('income-category.delete');
+    Route::post('/income-category-status', [IncomeCategoryController::class, 'toggleStatus'])->name('income-category-status');
+
     // Income routes
     Route::get('/income', [IncomeController::class, 'index'])->name('income.index');
+    Route::get('/income/create', [IncomeController::class, 'create'])->name('income.create');
     Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
     Route::get('/income/due-transactions', [IncomeController::class, 'getDueTransactions'])->name('income.due-transactions');
     Route::get('/income/{id}/details', [IncomeController::class, 'getIncomeDetails'])->name('income.details');
