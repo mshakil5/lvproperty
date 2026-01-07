@@ -174,6 +174,4 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
         Route::get('/details', [ReportController::class, 'getReportDetails'])->name('report.details');
     });
 
-    Route::get('/ledger', [IncomeController::class, 'ledger'])->name('ledger.index');
-
 });

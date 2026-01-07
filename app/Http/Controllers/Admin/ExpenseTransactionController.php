@@ -72,7 +72,7 @@ class ExpenseTransactionController extends Controller
         }
 
         $expenseCategories = Expense::where('status', 1)->get();
-        $properties = Property::where('status', 1)->get();
+        $properties = Property::latest()->get();
         return view('admin.expense-transaction.index', compact('expenseCategories', 'properties'));
     }
 

@@ -63,4 +63,9 @@ class Transaction extends Model
     {
         return strtolower($this->income?->name ?? '') === 'rent';
     }
+
+    public function expense()
+    {
+        return $this->belongsTo(Expense::class);
+    }
 }
