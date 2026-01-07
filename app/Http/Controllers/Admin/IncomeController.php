@@ -13,6 +13,42 @@ use Carbon\Carbon;
 
 class IncomeController extends Controller
 {
+
+    public function ledger()
+{
+    $transactions = Transaction::orderBy('date')
+        ->orderBy('id')
+        ->get();
+
+    $balance = 0;
+
+    $ledger = $transactions->map(function ($t) use (&$balance) {
+        $debit = 0;
+        $credit = 0;
+
+        if ($t->transaction_type === 'due') {
+            $debit = $t->amount;
+            $balance += $debit;
+        }
+
+        if ($t->transaction_type === 'received') {
+            $credit = $t->received_amount ?? $t->amount;
+            $balance -= $credit;
+        }
+
+        return [
+            'date' => $t->date ? \Carbon\Carbon::parse($t->date)->format('d M Y') : 'N/A',
+            'tran_id' => $t->tran_id,
+            'description' => $t->description,
+            'debit' => $debit,
+            'credit' => $credit,
+            'balance' => $balance,
+        ];
+    });
+
+    return view('admin.ledger.index', compact('ledger'));
+}
+
     public function index(Request $request)
     {
         if ($request->ajax()) {

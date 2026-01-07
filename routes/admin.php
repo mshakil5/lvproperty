@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ExpenseController;
 use App\Http\Controllers\Admin\ExpenseTransactionController;
 use App\Http\Controllers\Admin\IncomeController;
 use App\Http\Controllers\Admin\IncomeCategoryController;
+use App\Http\Controllers\Admin\ReportController;
 
 Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], function(){
     Route::get('/dashboard', [HomeController::class, 'adminHome'])->name('admin.dashboard');
@@ -165,4 +166,14 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::post('/income', [IncomeController::class, 'store'])->name('income.store');
     Route::get('/income/due-transactions', [IncomeController::class, 'getDueTransactions'])->name('income.due-transactions');
     Route::get('/income/{id}/details', [IncomeController::class, 'getIncomeDetails'])->name('income.details');
+
+    Route::prefix('report')->group(function () {
+        Route::get('/income', [ReportController::class, 'incomeReport'])->name('report.income');
+        Route::get('/expense', [ReportController::class, 'expenseReport'])->name('report.expense');
+        Route::get('/profitloss', [ReportController::class, 'profitLossReport'])->name('report.profitloss');
+        Route::get('/details', [ReportController::class, 'getReportDetails'])->name('report.details');
+    });
+
+    Route::get('/ledger', [IncomeController::class, 'ledger'])->name('ledger.index');
+
 });

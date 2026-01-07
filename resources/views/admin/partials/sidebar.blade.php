@@ -192,6 +192,38 @@
                     </div>
                 </li>
 
+                <li class="nav-item">
+                    <a class="nav-link menu-link {{ Request::is('admin/report*') ? 'active' : '' }}" 
+                    href="#sidebarReports" data-bs-toggle="collapse" role="button" 
+                    aria-expanded="{{ Request::is('admin/report*') ? 'true' : 'false' }}" 
+                    aria-controls="sidebarReports">
+                        <i class="ri-file-chart-line"></i> <span>Report</span>
+                    </a>
+
+                    <div class="collapse menu-dropdown {{ Request::is('admin/report*') ? 'show' : '' }}" id="sidebarReports">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a href="{{ route('report.income') }}" 
+                                class="nav-link {{ Request::is('admin/report/income') ? 'active' : '' }}">
+                                Income Report
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('report.expense') }}" 
+                                class="nav-link {{ Request::is('admin/report/expense') ? 'active' : '' }}">
+                                Expense Report
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('report.profitloss') }}" 
+                                class="nav-link {{ Request::is('admin/report/profitloss') ? 'active' : '' }}">
+                                Profit Loss Report
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 <li class="nav-item d-none">
                     <a class="nav-link menu-link {{ $productActive ? 'active' : '' }}" 
                       href="#sidebarAllProducts" data-bs-toggle="collapse" role="button"
