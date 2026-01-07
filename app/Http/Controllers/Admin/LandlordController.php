@@ -130,6 +130,13 @@ class LandlordController extends Controller
                             </div>';
                 })
 
+                ->addColumn('report', function ($row) {
+                    return '<a href="' . route('report.profitloss', ['landlord_id' => $row->id]) . '" 
+                            class="btn btn-sm btn-info" title="View P&L Report">
+                            <i class="ri-file-chart-line"></i> P&L Report
+                        </a>';
+                })
+
                 /* ---------------------------
                 ACTIONS
                 ---------------------------- */
@@ -162,7 +169,7 @@ class LandlordController extends Controller
                     ';
                 })
 
-                ->rawColumns(['landlord', 'address', 'compliance', 'bank_details', 'status', 'action'])
+                ->rawColumns(['landlord', 'address', 'compliance', 'bank_details', 'status', 'action', 'report'])
                 ->make(true);
         }
 

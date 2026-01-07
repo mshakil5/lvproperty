@@ -9,6 +9,7 @@ use App\Models\Income;
 use App\Models\Expense;
 use DataTables;
 use Carbon\Carbon;
+use App\Models\Landlord;
 
 class ReportController extends Controller
 {
@@ -129,8 +130,9 @@ class ReportController extends Controller
     {
         $startDate = $request->get('start_date') ?: now()->startOfMonth()->format('Y-m-d');
         $endDate = $request->get('end_date') ?: now()->format('Y-m-d');
+        $landlordId = $request->get('landlord_id');
 
-        // Get all income transactions
+        // Get all income transactions filtered by landlord
         $incomeTransactions = Transaction::with(['property', 'tenant', 'income'])
             ->where(function ($q) {
                 $q->where('transaction_type', 'due')
@@ -138,16 +140,22 @@ class ReportController extends Controller
             })
             ->whereDate('date', '>=', $startDate)
             ->whereDate('date', '<=', $endDate)
+            ->when($landlordId, function($q) use ($landlordId) {
+                return $q->where('landlord_id', $landlordId);
+            })
             ->orderBy('date', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
-        // Get all expense transactions
+        // Get all expense transactions filtered by landlord
         $expenseTransactions = Transaction::with(['expense', 'property'])
             ->whereNotNull('expense_id')
             ->where('transaction_type', 'payable')
             ->whereDate('date', '>=', $startDate)
             ->whereDate('date', '<=', $endDate)
+            ->when($landlordId, function($q) use ($landlordId) {
+                return $q->where('landlord_id', $landlordId);
+            })
             ->orderBy('date', 'asc')
             ->orderBy('id', 'asc')
             ->get();
@@ -216,6 +224,12 @@ class ReportController extends Controller
         $profitLoss = $totalIncome - $totalExpense;
         $isProfit = $profitLoss >= 0;
 
+        $landlordName = '';
+        if ($landlordId) {
+            $landlord = Landlord::find($landlordId);
+            $landlordName = $landlord ? $landlord->name : '';
+        }
+
         $reportData = [
             'total_income' => $totalIncome,
             'total_expense' => $totalExpense,
@@ -223,6 +237,8 @@ class ReportController extends Controller
             'is_profit' => $isProfit,
             'start_date' => $startDate,
             'end_date' => $endDate,
+            'landlord_id' => $landlordId,
+            'landlord_name' => $landlordName,
             'income_details' => $incomeDetails,
             'expense_details' => $expenseDetails
         ];
@@ -231,6 +247,6 @@ class ReportController extends Controller
             return response()->json($reportData);
         }
 
-        return view('admin.report.profitloss', compact('reportData', 'startDate', 'endDate'));
+        return view('admin.report.profitloss', compact('reportData', 'startDate', 'endDate', 'landlordId', 'landlordName'));
     }
 }

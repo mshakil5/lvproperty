@@ -5,7 +5,12 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header bg-success text-white">
-            <h4 class="mb-0">Profit & Loss Report</h4>
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Profit & Loss Report</h4>
+                @if($landlordName)
+                    <span class="badge bg-info">{{ $landlordName }}</span>
+                @endif
+            </div>
         </div>
         <div class="card-body">
             <div class="row mb-4">
@@ -65,7 +70,7 @@
             <div class="row mb-4">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="card-header bg-secondary text-white">
+                        <div class="card-header bg-info text-white">
                             <h5 class="mb-0">Income Breakdown</h5>
                         </div>
                         <div class="card-body">
@@ -149,22 +154,29 @@
 @section('script')
 <script>
 $(document).ready(function() {
+    var landlordId = "{{ $landlordId ?? '' }}";
     loadProfitLossReport();
 
     function loadProfitLossReport() {
+        var data = {
+            start_date: $('#startDate').val(),
+            end_date: $('#endDate').val()
+        };
+        
+        if (landlordId) {
+            data.landlord_id = landlordId;
+        }
+
         $.ajax({
             url: "{{ route('report.profitloss') }}",
             type: 'GET',
-            data: {
-                start_date: $('#startDate').val(),
-                end_date: $('#endDate').val()
-            },
+            data: data,
             dataType: 'json',
-            success: function(data) {
-                var income = data.total_income;
-                var expense = data.total_expense;
-                var profitLoss = data.profit_loss;
-                var isProfit = data.is_profit;
+            success: function(response) {
+                var income = response.total_income;
+                var expense = response.total_expense;
+                var profitLoss = response.profit_loss;
+                var isProfit = response.is_profit;
 
                 $('#totalIncome').text('£' + income.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
                 $('#totalExpense').text('£' + expense.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
@@ -174,8 +186,8 @@ $(document).ready(function() {
                 var incomeBody = $('#incomeDetailsBody');
                 incomeBody.empty();
                 var index = 1;
-                if (data.income_details && data.income_details.length > 0) {
-                    data.income_details.forEach(function(detail) {
+                if (response.income_details && response.income_details.length > 0) {
+                    response.income_details.forEach(function(detail) {
                         incomeBody.append(`
                             <tr>
                                 <td>${index++}</td>
@@ -197,7 +209,7 @@ $(document).ready(function() {
                 // Calculate income totals
                 var incomeDebitTotal = 0;
                 var incomeCreditTotal = 0;
-                data.income_details.forEach(function(detail) {
+                response.income_details.forEach(function(detail) {
                     incomeDebitTotal += parseFloat(detail.debit.replace('£', '').replace(',', '')) || 0;
                     incomeCreditTotal += parseFloat(detail.credit.replace('£', '').replace(',', '')) || 0;
                 });
@@ -210,8 +222,8 @@ $(document).ready(function() {
                 var expenseBody = $('#expenseDetailsBody');
                 expenseBody.empty();
                 index = 1;
-                if (data.expense_details && data.expense_details.length > 0) {
-                    data.expense_details.forEach(function(detail) {
+                if (response.expense_details && response.expense_details.length > 0) {
+                    response.expense_details.forEach(function(detail) {
                         expenseBody.append(`
                             <tr>
                                 <td>${index++}</td>
@@ -233,7 +245,7 @@ $(document).ready(function() {
                 // Calculate expense totals
                 var expenseDebitTotal = 0;
                 var expenseCreditTotal = 0;
-                data.expense_details.forEach(function(detail) {
+                response.expense_details.forEach(function(detail) {
                     expenseDebitTotal += parseFloat(detail.debit.replace('£', '').replace(',', '')) || 0;
                     expenseCreditTotal += parseFloat(detail.credit.replace('£', '').replace(',', '')) || 0;
                 });
