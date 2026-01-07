@@ -9,6 +9,7 @@ use App\Models\Property;
 use DataTables;
 use Illuminate\Support\Facades\DB;
 use App\Models\Income;
+use Carbon\Carbon;
 
 class IncomeController extends Controller
 {
@@ -55,7 +56,7 @@ class IncomeController extends Controller
 
     public function create()
     {
-        $properties = Property::where('status', 1)->latest()->get();
+        $properties = Property::latest()->get();
         $incomes = Income::where('status', 1)->latest()->get();
         return view('admin.income.create', compact('properties', 'incomes'));
     }
@@ -75,6 +76,7 @@ class IncomeController extends Controller
                 'tenant_name' => $d->tenant?->name ?? 'N/A',
                 'amount' => '£' . number_format($d->remaining_due, 2),
                 'raw_amount' => $d->remaining_due,
+                'date' => $d->date ? Carbon::parse($d->date)->format('d M, Y') : null,
             ])
             ->values();
 

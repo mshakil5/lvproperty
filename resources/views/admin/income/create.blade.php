@@ -23,7 +23,14 @@
                         @csrf
 
                         <div class="row g-3">
-                            <div class="col-md-4">
+
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date"
+                                    value="{{ date('Y-m-d') }}" required>
+                            </div>
+
+                            <div class="col-md-6">
                                 <label class="form-label">Income Category <span class="text-danger">*</span></label>
                                 <select class="form-control select2" id="income_id" name="income_id" required>
                                     <option value="">Select Income Category</option>
@@ -34,9 +41,21 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label">Payment Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="date" name="date"
-                                    value="{{ date('Y-m-d') }}" required>
+                                <label class="form-label">Select Property <span class="text-danger" id="propertyRequired"></span></label>
+                                <select class="form-control select2" id="property_id" name="property_id">
+                                    <option value="">Select Property</option>
+                                    @foreach ($properties as $property)
+                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Amount Received (£) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control" id="total_amount"
+                                    name="total_amount" placeholder="0.00" required>
+                                <small class="text-muted d-block mt-1">Selected Total: <strong
+                                        id="selectedTotal">£0.00</strong></small>
                             </div>
 
                             <div class="col-md-4">
@@ -45,24 +64,6 @@
                                     <option value="">Select Payment Type</option>
                                     <option value="cash">Cash</option>
                                     <option value="bank">Bank Transfer</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Amount Received (£) <span class="text-danger">*</span></label>
-                                <input type="number" step="0.01" class="form-control" id="total_amount"
-                                    name="total_amount" placeholder="0.00" required>
-                                <small class="text-muted d-block mt-1">Selected Total: <strong
-                                        id="selectedTotal">£0.00</strong></small>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Select Property <span class="text-danger" id="propertyRequired"></span></label>
-                                <select class="form-control select2" id="property_id" name="property_id">
-                                    <option value="">Select Property</option>
-                                    @foreach ($properties as $property)
-                                        <option value="{{ $property->id }}">{{ $property->property_reference }}</option>
-                                    @endforeach
                                 </select>
                             </div>
 
@@ -104,6 +105,20 @@
         </div>
     </div>
 
+    <style>
+        .due-transaction-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .due-transaction-card:hover {
+            border-color: #0d6efd;
+        }
+
+        .due-transaction-card.border-primary {
+            border-width: 2px;
+        }
+    </style>
 @endsection
 
 @section('script')
@@ -241,7 +256,7 @@
                     property_id: propertyId,
                     income_id: incomeId
                 }, function(response) {
-                    console.log(response);
+                    // console.log(response);
                     if (response.length > 0) {
                         let html = '<div class="row">';
                         response.forEach((transaction, index) => {
@@ -311,19 +326,4 @@
             }
         });
     </script>
-
-    <style>
-        .due-transaction-card {
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .due-transaction-card:hover {
-            border-color: #0d6efd;
-        }
-
-        .due-transaction-card.border-primary {
-            border-width: 2px;
-        }
-    </style>
 @endsection
