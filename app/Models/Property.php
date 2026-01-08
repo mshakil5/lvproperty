@@ -20,4 +20,9 @@ class Property extends Model
     {
         return $this->hasMany(Tenant::class);
     }
+
+    public function tenancies()
+    {
+        return $this->hasMany(Tenancy::class);
+    }
 }

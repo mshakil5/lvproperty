@@ -193,6 +193,32 @@
                 </li>
 
                 <li class="nav-item">
+                    <a class="nav-link menu-link {{ Request::is('admin/statement*') || Request::is('admin/invoice*') ? 'active' : '' }}" 
+                    href="#sidebarReports" data-bs-toggle="collapse" role="button" 
+                    aria-expanded="{{ Request::is('admin/statement*') || Request::is('admin/invoice*') ? 'true' : 'false' }}" 
+                    aria-controls="sidebarReports">
+                        <i class="ri-file-chart-line"></i> <span>Reports</span>
+                    </a>
+
+                    <div class="collapse menu-dropdown {{ Request::is('admin/statement*') || Request::is('admin/invoice*') ? 'show' : '' }}" id="sidebarReports">
+                        <ul class="nav nav-sm flex-column">
+                            <li class="nav-item">
+                                <a href="{{ route('statement.index') }}" 
+                                class="nav-link {{ Request::is('admin/statement*') ? 'active' : '' }}">
+                                Yearly Statement
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('invoice.index') }}" 
+                                class="nav-link {{ Request::is('admin/invoice*') ? 'active' : '' }}">
+                                Monthly Invoice
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item d-none">
                     <a class="nav-link menu-link {{ Request::is('admin/report*') ? 'active' : '' }}" 
                     href="#sidebarReports" data-bs-toggle="collapse" role="button" 
                     aria-expanded="{{ Request::is('admin/report*') ? 'true' : 'false' }}" 

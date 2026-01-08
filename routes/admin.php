@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\ExpenseTransactionController;
 use App\Http\Controllers\Admin\IncomeController;
 use App\Http\Controllers\Admin\IncomeCategoryController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\StatementController;
+use App\Http\Controllers\Admin\InvoiceController;
 
 Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], function(){
     Route::get('/dashboard', [HomeController::class, 'adminHome'])->name('admin.dashboard');
@@ -171,5 +173,12 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::get('report/income', [ReportController::class, 'incomeReport'])->name('report.income');
     Route::get('report/expense', [ReportController::class, 'expenseReport'])->name('report.expense');
     Route::get('report/profitloss', [ReportController::class, 'profitLossReport'])->name('report.profitloss');
+
+    Route::get('/statement', [StatementController::class, 'index'])->name('statement.index');
+    Route::post('/statement/generate', [StatementController::class, 'generate'])->name('statement.generate');
+    Route::post('/statement/pdf', [StatementController::class, 'generatePdf'])->name('statement.pdf');
+
+    Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice.index');
+    Route::post('/invoice/generate', [InvoiceController::class, 'generate'])->name('invoice.generate');
 
 });
