@@ -10,6 +10,7 @@ use DataTables;
 use Illuminate\Support\Facades\DB;
 use App\Models\Income;
 use Carbon\Carbon;
+use App\Models\CompanyDetails;
 
 class IncomeController extends Controller
 {
@@ -40,6 +41,10 @@ class IncomeController extends Controller
                     <button class="btn btn-soft-primary btn-sm view-income-details" data-income-id="' . $row->id . '">
                         <i class="ri-eye-fill align-middle"></i> View
                     </button>
+                    <a href="'.route('income.invoice', $row->id).'" target="_blank"
+                    class="btn btn-soft-success btn-sm ms-1">
+                        Invoice
+                    </a>
                 ')
                 ->addColumn('property', fn ($row) =>
                     $row->property?->property_reference ?? 'N/A'
@@ -244,5 +249,21 @@ class IncomeController extends Controller
             ],
             'received_transactions' => $receivedList
         ]);
+    }
+
+    public function invoice($id)
+    {
+        $trx = Transaction::with(['property','tenant','income'])->findOrFail($id);
+
+        $company = CompanyDetails::first();
+
+        $paidImagePath = public_path('paid.png');
+        $paidImageBase64 = file_exists($paidImagePath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($paidImagePath))
+            : null;
+
+        return view('admin.income.invoice', compact(
+            'trx','company','paidImageBase64'
+        ));
     }
 }

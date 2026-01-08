@@ -13,7 +13,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta content="" name="description" />
       <meta content="" name="author" />
-      <link href="{{ asset('images/company/' . $company->fav_icon) }}" rel="icon">
+      <link href="{{ asset('uploads/company/' . $company->fav_icon) }}" rel="icon">
 
       <!-- jsvectormap css -->
       <link href="{{ asset('resources/backend/libs/jsvectormap/css/jsvectormap.min.css') }}" rel="stylesheet"

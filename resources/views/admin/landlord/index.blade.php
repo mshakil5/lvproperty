@@ -129,6 +129,7 @@
                             <th>Bank Details</th>
                             <th>Status</th>
                             <th>Profit & Loss</th>
+                            <th>Properties</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -154,6 +155,7 @@
                 { data: 'bank_details', name: 'bank_name' },
                 { data: 'status', name: 'status', orderable: false, searchable: false },
                 { data: 'report', name: 'report', orderable: false, searchable: false },
+                { data: 'properties', name: 'properties', orderable: false, searchable: false },
                 { data: 'action', name: 'action', orderable: false, searchable: false },
             ]
         });

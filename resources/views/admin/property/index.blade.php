@@ -220,7 +220,7 @@
             serverSide: true,
             pageLength: 25,
                 ajax: {
-                url: "{{ route('allproperty') }}",
+                url: "{{ route('allproperty') }}" + window.location.search,
                 type: 'GET',
                 error: function(xhr, status, error) {
                     console.error("Response Text:", xhr.responseText);

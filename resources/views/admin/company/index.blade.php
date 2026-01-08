@@ -335,7 +335,7 @@
                                     </div>
 
                                     <img class="img-thumbnail mt-2" id="fav_icon_preview"
-                                        src="{{ isset($data->fav_icon) ? asset('images/company/' . $data->fav_icon) : '' }}"
+                                        src="{{ isset($data->fav_icon) ? asset('uploads/company/' . $data->fav_icon) : '' }}"
                                         alt="">
                                 </div>
 
@@ -354,7 +354,7 @@
                                         @enderror
                                     </div>
                                     <img class="img-thumbnail mt-2" id="company_logo_preview"
-                                        src="{{ isset($data->company_logo) ? asset('images/company/' . $data->company_logo) : '' }}"
+                                        src="{{ isset($data->company_logo) ? asset('uploads/company/' . $data->company_logo) : '' }}"
                                         alt="">
                                 </div>
 
@@ -373,7 +373,7 @@
                                         @enderror
                                     </div>
                                     <img class="img-thumbnail mt-2" id="footer_logo_preview"
-                                        src="{{ isset($data->footer_logo) ? asset('images/company/' . $data->footer_logo) : '' }}"
+                                        src="{{ isset($data->footer_logo) ? asset('uploads/company/' . $data->footer_logo) : '' }}"
                                         alt="">
                                 </div>
 

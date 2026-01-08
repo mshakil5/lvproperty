@@ -168,7 +168,7 @@ $(document).ready(function() {
         }
 
         $.ajax({
-            url: "{{ route('report.profitloss') }}",
+            url: "{{ route('report.profitloss') }}" + window.location.search,
             type: 'GET',
             data: data,
             dataType: 'json',

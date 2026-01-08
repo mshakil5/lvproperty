@@ -99,6 +99,14 @@ class LandlordController extends Controller
                     return $output ?: 'N/A';
                 })
 
+                ->addColumn('properties', function ($row) {
+                    // Link/button to view properties of this landlord
+                    return '<a href="' . route('allproperty', ['landlord_id' => $row->id]) . '" 
+                                class="btn btn-sm btn-primary">
+                                <i class="ri-building-line"></i> Properties
+                            </a>';
+                })
+
                 /* ---------------------------
                 BANK DETAILS COLUMN
                 ---------------------------- */
@@ -169,7 +177,7 @@ class LandlordController extends Controller
                     ';
                 })
 
-                ->rawColumns(['landlord', 'address', 'compliance', 'bank_details', 'status', 'action', 'report'])
+                ->rawColumns(['landlord', 'address', 'compliance', 'bank_details', 'status', 'action', 'report', 'properties'])
                 ->make(true);
         }
 

@@ -33,6 +33,10 @@ class PropertyController extends Controller
                 'emergency_contact'
             ])->orderBy('id', 'desc');
 
+            if ($request->has('landlord_id')) {
+                $properties->where('landlord_id', $request->landlord_id);
+            }
+
             return DataTables::of($properties)
                 ->addIndexColumn()
 

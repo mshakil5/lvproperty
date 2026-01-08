@@ -836,7 +836,7 @@
                     
                     // Default end date: 1 year from new start date
                     let newEndDate = new Date(newStartDate);
-                    newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+                    newEndDate.setMonth(newEndDate.getMonth() + 1);
                     $('#renew_end_date').val(newEndDate.toISOString().split('T')[0]);
                 }
                 
