@@ -711,7 +711,13 @@
                 <div class="contact-header">☎ Contact & Queries</div>
                 <div class="contact-content">
                     <div class="contact-left">
-                        <p><strong>📧 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f29a979e9e9db29e9d9c969d9c84939e9e978b82809d829780868bdc919ddc8799">[email&#160;protected]</a></strong></p>
+                        <p>
+                            <strong>📧
+                                <a href="mailto:hello@londonvalleyproperty.co.uk">
+                                hello@londonvalleyproperty.co.uk
+                                </a>
+                            </strong>
+                            </p>
                         <p><strong>☎ 0752 3959582 | 0208 287 4037</strong></p>
                     </div>
                     <div class="contact-right">
