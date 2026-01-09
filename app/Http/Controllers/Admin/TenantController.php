@@ -165,8 +165,8 @@ class TenantController extends Controller
                                         <i class="ri-pencil-fill align-bottom me-2 text-muted"></i> Edit
                                     </button>
                                 </li>
-                                <li class="dropdown-divider"></li>
-                                <li>
+                                <li class="dropdown-divider d-none"></li>
+                                <li class="d-none">
                                     <button class="dropdown-item deleteBtn" 
                                             data-delete-url="' . route('tenant.delete', $row->id) . '" 
                                             data-method="DELETE" 

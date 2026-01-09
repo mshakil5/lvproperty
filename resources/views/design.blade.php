@@ -23,38 +23,7 @@
             background: white;
         }
 
-        .print-button-section {
-            margin-bottom: 20px;
-            text-align: right;
-            padding: 0 20px;
-        }
-
-        .print-button-section button,
-        .print-button-section a {
-            padding: 10px 20px;
-            margin-left: 10px;
-            background: #1e7bc4;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 13px;
-        }
-
-        .print-button-section button:hover {
-            background: #1565a0;
-        }
-
-        .print-button-section a {
-            background: #666;
-        }
-
-        .print-button-section a:hover {
-            background: #555;
-        }
-
+        /* HEADER WITH LOGO */
         .header {
             display: flex;
             justify-content: space-between;
@@ -72,12 +41,16 @@
             font-size: 20px;
             font-weight: bold;
             color: #1e7bc4;
-            margin: 0;
         }
 
         .logo-section {
             flex: 0 0 150px;
             text-align: right;
+        }
+
+        .logo-section img {
+            max-width: 120px;
+            height: auto;
         }
 
         .logo-placeholder {
@@ -93,10 +66,12 @@
             text-align: center;
         }
 
+        /* MAIN CONTENT */
         .content {
             padding: 40px;
         }
 
+        /* TWO COLUMN LAYOUT */
         .two-column {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -139,6 +114,7 @@
             color: #555;
         }
 
+        /* STATEMENT TABLE */
         .statement-section {
             margin-bottom: 40px;
         }
@@ -200,6 +176,7 @@
             color: #27ae60;
         }
 
+        /* SUMMARY TABLE */
         .summary-section {
             margin-bottom: 40px;
             border-bottom: 2px solid #ddd;
@@ -213,12 +190,6 @@
             margin-bottom: 15px;
             border-bottom: 2px solid #ddd;
             padding-bottom: 8px;
-        }
-
-        .summary-section > p {
-            font-size: 11px;
-            margin-bottom: 15px;
-            color: #666;
         }
 
         .summary-table {
@@ -257,6 +228,7 @@
             font-weight: bold;
         }
 
+        /* COMPLIANCE SECTION */
         .compliance-section {
             margin-bottom: 40px;
             margin-top: 40px;
@@ -269,12 +241,27 @@
             font-weight: bold;
             font-size: 12px;
             border-bottom: 1px solid #999;
+            display: flex;
+            align-items: center;
+        }
+
+        .compliance-header i {
+            margin-right: 8px;
+            color: #1e7bc4;
         }
 
         .compliance-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 11px;
+        }
+
+        .compliance-table th {
+            background: white;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #999;
+            font-weight: bold;
         }
 
         .compliance-table td {
@@ -287,6 +274,7 @@
             width: 50%;
         }
 
+        /* CONTACT SECTION */
         .contact-section {
             margin-bottom: 40px;
             margin-top: 40px;
@@ -299,6 +287,13 @@
             font-weight: bold;
             font-size: 12px;
             border-bottom: 1px solid #999;
+            display: flex;
+            align-items: center;
+        }
+
+        .contact-header i {
+            margin-right: 8px;
+            color: #ff9800;
         }
 
         .contact-content {
@@ -316,9 +311,18 @@
             margin-bottom: 5px;
         }
 
+        .contact-left a {
+            color: #1e7bc4;
+            text-decoration: none;
+        }
+
         .contact-right {
             text-align: right;
             font-size: 11px;
+        }
+
+        .contact-right p {
+            margin-bottom: 5px;
         }
 
         .authorized-label {
@@ -326,6 +330,7 @@
             margin-bottom: 30px;
         }
 
+        /* DATE AND SIGNATURE */
         .date-signature {
             padding: 20px;
             display: grid;
@@ -335,10 +340,20 @@
             font-size: 11px;
         }
 
+        .date-field {
+            text-align: center;
+        }
+
         .date-field p {
             margin-bottom: 5px;
         }
 
+        .date-field strong {
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* FOOTER */
         .footer {
             background: #f0f0f0;
             padding: 20px 40px;
@@ -371,26 +386,10 @@
             .container {
                 box-shadow: none;
             }
-            .print-button-section {
-                display: none;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- PDF Download Button -->
-    <div class="print-button-section">
-        <form id="pdfForm" method="POST" action="{{ route('statement.pdf') }}" style="display: inline;">
-            @csrf
-            <input type="hidden" name="landlord_id" value="{{ $landlord->id }}">
-            <input type="hidden" name="property_id" value="{{ $property->id }}">
-            <input type="hidden" name="start_date" value="{{ $startDate->format('Y-m-d') }}">
-            <input type="hidden" name="end_date" value="{{ $endDate->format('Y-m-d') }}">
-            <button type="submit" class="print-button-section" style="padding: 10px 20px; background: #1e7bc4; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">📥 Download PDF</button>
-        </form>
-        <a href="{{ route('statement.index') }}" style="padding: 10px 20px; margin-left: 10px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px;">← Back</a>
-    </div>
-
     <div class="container">
         <!-- HEADER WITH LOGO -->
         <div class="header">
@@ -398,15 +397,11 @@
                 <h1>LV Property: End of Year Rental and Charges Statement</h1>
             </div>
             <div class="logo-section">
-                @php $companyDetails = \App\Models\CompanyDetails::first(); @endphp
-                @if($companyDetails && $companyDetails->company_logo)
-                    <img src="{{ asset('uploads/company/' . $companyDetails->company_logo) }}" alt="Company Logo" style="max-width: 120px; height: auto;">
-                @else
-                    <div class="logo-placeholder">LV PROPERTY<br>LOGO</div>
-                @endif
+                <div class="logo-placeholder">LV PROPERTY<br>LOGO</div>
             </div>
         </div>
 
+        <!-- MAIN CONTENT -->
         <div class="content">
             <!-- TWO COLUMN SECTION -->
             <div class="two-column">
@@ -414,14 +409,14 @@
                 <div class="left-column">
                     <h3>Landlord</h3>
                     <p>
-                        <strong>{{ $landlord->name }}</strong><br>
-                        @if($landlord->company_name){{ $landlord->company_name }}<br>@endif
-                        @if($landlord->correspondence_address){{ $landlord->correspondence_address }}<br>@endif
-                        @if($landlord->city){{ $landlord->city }}<br>@endif
-                        @if($landlord->postcode){{ $landlord->postcode }}<br>@endif
+                        <strong>Mrs. J Begum</strong><br>
+                        J Begum Properties<br>
+                        97 Erskine Road<br>
+                        Sutton<br>
+                        SM1 3AT<br>
                         <br>
-                        @if($landlord->phone)Tel: {{ $landlord->phone }}<br>@endif
-                        @if($landlord->email)Email: {{ $landlord->email }}@endif
+                        Tel: 020 1234 5678<br>
+                        Email: j.begum@property.com
                     </p>
                 </div>
 
@@ -429,32 +424,32 @@
                 <div class="right-column">
                     <div class="row">
                         <div class="label">Statement Period</div>
-                        <div class="value">{{ $startDate->format('d F Y') }} to {{ $endDate->format('d F Y') }}</div>
+                        <div class="value">1 January 2024 to 31 December 2024</div>
                     </div>
 
                     <div class="row">
                         <div class="label">Property Address</div>
-                        <div class="value">{{ $property->address_first_line }}, {{ $property->city }}, {{ $property->postcode }}</div>
+                        <div class="value">18 Killick House, Sutton, SM1 1SA</div>
                     </div>
 
                     <div class="row">
                         <div class="label">Property Reference</div>
-                        <div class="value">{{ $property->property_reference }}</div>
+                        <div class="value">18KHSM11SA</div>
                     </div>
 
                     <div class="row">
                         <div class="label">Statement Reference</div>
-                        <div class="value">{{ $property->property_reference }}-{{ $startDate->format('Y') }}</div>
+                        <div class="value">18KHSM11SA-2024-YR</div>
                     </div>
 
                     <div class="row">
                         <div class="label">Prepared By</div>
-                        <div class="value">{{ Auth::user()->name ?? '' }}</div>
+                        <div class="value">Admin User</div>
                     </div>
 
                     <div class="row">
                         <div class="label">Date Issued</div>
-                        <div class="value">{{ now()->format('d F Y') }}</div>
+                        <div class="value">15 January 2025</div>
                     </div>
                 </div>
             </div>
@@ -466,136 +461,138 @@
                     <thead>
                         <tr>
                             <th style="width: 25%;">Category</th>
-                            @foreach($months as $month)
-                                <th style="width: 6.5%;">{{ $month['display'] }}</th>
-                            @endforeach
-                            <th style="width: 6.5%; background: #1e7bc4; color: white;">Total</th>
+                            <th>Jan</th>
+                            <th>Feb</th>
+                            <th>Mar</th>
+                            <th>Apr</th>
+                            <th>May</th>
+                            <th>Jun</th>
+                            <th>Jul</th>
+                            <th>Aug</th>
+                            <th>Sep</th>
+                            <th>Oct</th>
+                            <th>Nov</th>
+                            <th>Dec</th>
+                            <th style="background: #1e7bc4; color: white;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <!-- INCOME HEADER -->
                         <tr class="section-header">
-                            <td colspan="{{ count($months) + 2 }}">INCOME</td>
+                            <td colspan="14">INCOME</td>
                         </tr>
 
                         <!-- RENT RECEIVED -->
                         <tr>
                             <td>Rent Received</td>
-                            @php $rentTotal = 0; @endphp
-                            @foreach($months as $month)
-                                @php
-                                    $rentAmount = $statementData['rent']['values'][$month['key']] ?? 0;
-                                    $rentTotal += $rentAmount;
-                                @endphp
-                                <td>{{ $rentAmount > 0 ? '£' . number_format($rentAmount, 2) : '' }}</td>
-                            @endforeach
-                            <td class="total-row">{{ $rentTotal > 0 ? '£' . number_format($rentTotal, 2) : '' }}</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td class="total-row">£24,000</td>
                         </tr>
-
-                        <!-- OTHER INCOME CATEGORIES -->
-                        @foreach($statementData as $key => $row)
-                            @if($row['type'] === 'income' && $key !== 'rent')
-                                <tr>
-                                    <td>{{ $row['category'] }}</td>
-                                    @php $categoryTotal = 0; @endphp
-                                    @foreach($months as $month)
-                                        @php
-                                            $amount = $row['values'][$month['key']] ?? 0;
-                                            $categoryTotal += $amount;
-                                        @endphp
-                                        <td>{{ $amount > 0 ? '£' . number_format($amount, 2) : '' }}</td>
-                                    @endforeach
-                                    <td>{{ $categoryTotal > 0 ? '£' . number_format($categoryTotal, 2) : '' }}</td>
-                                </tr>
-                            @endif
-                        @endforeach
 
                         <!-- TOTAL INCOME -->
                         <tr class="total-row">
                             <td>TOTAL INCOME</td>
-                            @php $totalIncome = 0; @endphp
-                            @foreach($months as $month)
-                                @php
-                                    $monthIncome = ($statementData['rent']['values'][$month['key']] ?? 0);
-                                    foreach($statementData as $key => $row) {
-                                        if($row['type'] === 'income' && $key !== 'rent') {
-                                            $monthIncome += ($row['values'][$month['key']] ?? 0);
-                                        }
-                                    }
-                                    $totalIncome += $monthIncome;
-                                @endphp
-                                <td>{{ $monthIncome > 0 ? '£' . number_format($monthIncome, 2) : '' }}</td>
-                            @endforeach
-                            <td>{{ $totalIncome > 0 ? '£' . number_format($totalIncome, 2) : '' }}</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£2,000</td>
+                            <td>£24,000</td>
                         </tr>
 
                         <!-- EXPENSES HEADER -->
                         <tr class="section-header">
-                            <td colspan="{{ count($months) + 2 }}">EXPENSES</td>
+                            <td colspan="14">EXPENSES</td>
                         </tr>
 
-                        <!-- EXPENSE CATEGORIES -->
-                        @foreach($statementData as $key => $row)
-                            @if($row['type'] === 'expense')
-                                <tr>
-                                    <td>{{ $row['category'] }}</td>
-                                    @php $categoryTotal = 0; @endphp
-                                    @foreach($months as $month)
-                                        @php
-                                            $amount = $row['values'][$month['key']] ?? 0;
-                                            $categoryTotal += $amount;
-                                        @endphp
-                                        <td>{{ $amount > 0 ? '£' . number_format($amount, 2) : '' }}</td>
-                                    @endforeach
-                                    <td>{{ $categoryTotal > 0 ? '£' . number_format($categoryTotal, 2) : '' }}</td>
-                                </tr>
-                            @endif
-                        @endforeach
+                        <!-- MAINTENANCE -->
+                        <tr>
+                            <td>Maintenance</td>
+                            <td>£100</td>
+                            <td>£150</td>
+                            <td>-</td>
+                            <td>£200</td>
+                            <td>-</td>
+                            <td>£75</td>
+                            <td>-</td>
+                            <td>£100</td>
+                            <td>-</td>
+                            <td>£150</td>
+                            <td>-</td>
+                            <td>£125</td>
+                            <td>£900</td>
+                        </tr>
+
+                        <!-- MANAGEMENT FEE -->
+                        <tr>
+                            <td>Management Fee (5%)</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£100</td>
+                            <td>£1,200</td>
+                        </tr>
 
                         <!-- TOTAL EXPENSES -->
                         <tr class="total-row">
                             <td>TOTAL EXPENSES</td>
-                            @php $totalExpenses = 0; @endphp
-                            @foreach($months as $month)
-                                @php
-                                    $monthExpense = 0;
-                                    foreach($statementData as $key => $row) {
-                                        if($row['type'] === 'expense') {
-                                            $monthExpense += ($row['values'][$month['key']] ?? 0);
-                                        }
-                                    }
-                                    $totalExpenses += $monthExpense;
-                                @endphp
-                                <td>{{ $monthExpense > 0 ? '£' . number_format($monthExpense, 2) : '' }}</td>
-                            @endforeach
-                            <td>{{ $totalExpenses > 0 ? '£' . number_format($totalExpenses, 2) : '' }}</td>
+                            <td>£200</td>
+                            <td>£250</td>
+                            <td>£100</td>
+                            <td>£300</td>
+                            <td>£100</td>
+                            <td>£175</td>
+                            <td>£100</td>
+                            <td>£200</td>
+                            <td>£100</td>
+                            <td>£250</td>
+                            <td>£100</td>
+                            <td>£225</td>
+                            <td>£2,100</td>
                         </tr>
 
                         <!-- NET INCOME -->
                         <tr class="net-row">
                             <td>NET INCOME / (LOSS)</td>
-                            @php $grandNetIncome = 0; @endphp
-                            @foreach($months as $month)
-                                @php
-                                    $monthIncome = 0;
-                                    $monthExpense = 0;
-                                    
-                                    $monthIncome += ($statementData['rent']['values'][$month['key']] ?? 0);
-                                    foreach($statementData as $key => $row) {
-                                        if($row['type'] === 'income' && $key !== 'rent') {
-                                            $monthIncome += ($row['values'][$month['key']] ?? 0);
-                                        }
-                                        if($row['type'] === 'expense') {
-                                            $monthExpense += ($row['values'][$month['key']] ?? 0);
-                                        }
-                                    }
-                                    
-                                    $netMonth = $monthIncome - $monthExpense;
-                                    $grandNetIncome += $netMonth;
-                                @endphp
-                                <td>{{ $netMonth != 0 ? '£' . number_format($netMonth, 2) : '' }}</td>
-                            @endforeach
-                            <td>{{ $grandNetIncome != 0 ? '£' . number_format($grandNetIncome, 2) : '' }}</td>
+                            <td>£1,800</td>
+                            <td>£1,750</td>
+                            <td>£1,900</td>
+                            <td>£1,700</td>
+                            <td>£1,900</td>
+                            <td>£1,825</td>
+                            <td>£1,900</td>
+                            <td>£1,800</td>
+                            <td>£1,900</td>
+                            <td>£1,750</td>
+                            <td>£1,900</td>
+                            <td>£1,775</td>
+                            <td>£21,900</td>
                         </tr>
                     </tbody>
                 </table>
@@ -604,7 +601,9 @@
             <!-- SUMMARY TABLE -->
             <div class="summary-section">
                 <h3>Annual Financial Summary</h3>
-                <p>Income reflects Total Rent Received minus Agency Fees and Landlord-Paid Charges. Deposit Deductions are itemised separately and reconciled via TDS.</p>
+                <p style="font-size: 11px; margin-bottom: 15px; color: #666;">
+                    Income reflects Total Rent Received minus Agency Fees and Landlord-Paid Charges. Deposit Deductions are itemised separately and reconciled via TDS.
+                </p>
                 <table class="summary-table">
                     <thead>
                         <tr>
@@ -615,19 +614,19 @@
                     <tbody>
                         <tr>
                             <td class="label">Total Rent Received</td>
-                            <td class="amount">£{{ number_format($summary['totalRent'], 2) }}</td>
+                            <td class="amount">£24,000.00</td>
                         </tr>
                         <tr>
                             <td class="label">Less: Agency Fees</td>
-                            <td class="amount">£{{ number_format($summary['totalExpenses'] * 0.05, 2) }}</td>
+                            <td class="amount">£1,200.00</td>
                         </tr>
                         <tr>
                             <td class="label">Less: Landlord-Paid Charges</td>
-                            <td class="amount">£{{ number_format($summary['totalExpenses'] * 0.05, 2) }}</td>
+                            <td class="amount">£900.00</td>
                         </tr>
                         <tr class="total-summary">
                             <td class="label">Net Income (After Fees & Charges)</td>
-                            <td class="amount">£{{ number_format($summary['netIncome'], 2) }}</td>
+                            <td class="amount">£21,900.00</td>
                         </tr>
                         <tr>
                             <td class="label">Deposit Deductions (TDS)</td>
@@ -635,7 +634,7 @@
                         </tr>
                         <tr class="total-summary">
                             <td class="label"><strong>Total Payable to Landlord</strong></td>
-                            <td class="amount"><strong>£{{ number_format($summary['netIncome'], 2) }}</strong></td>
+                            <td class="amount"><strong>£21,900.00</strong></td>
                         </tr>
                     </tbody>
                 </table>
@@ -643,61 +642,31 @@
 
             <!-- COMPLIANCE & NOTES -->
             <div class="compliance-section">
-                <div class="compliance-header">✓ Compliance & Notes</div>
+                <div class="compliance-header">
+                    ✓ Compliance & Notes
+                </div>
                 <table class="compliance-table">
                     <tbody>
-                        @if($propertyCompliances->count() > 0)
-                            @foreach($propertyCompliances as $compliance)
-                                <tr>
-                                    <td class="label-col">{{ $compliance->complianceType->name ?? 'Compliance' }}:</td>
-                                    <td>
-                                        @if($compliance->status === 'Active')
-                                            <span style="color: #27ae60; font-weight: bold;">✓ YES</span>
-                                        @elseif($compliance->status === 'Expired')
-                                            <span style="color: #c0392b; font-weight: bold;">✗ EXPIRED</span>
-                                        @else
-                                            <span style="color: #f39c12; font-weight: bold;">{{ $compliance->status }}</span>
-                                        @endif
-                                        @if($compliance->expiry_date)
-                                            <br><small style="color: #666;">Expires: {{ Carbon\Carbon::parse($compliance->expiry_date)->format('d M Y') }}</small>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        @else
-                            <tr>
-                                <td class="label-col">No Compliance Records:</td>
-                                <td></td>
-                            </tr>
-                        @endif
-                        
+                        <tr>
+                            <td class="label-col">Gas Safety Certificate Expiration:</td>
+                            <td>YES</td>
+                        </tr>
+                        <tr>
+                            <td class="label-col">EICR (Electrical Inspection) Expiration:</td>
+                            <td>YES</td>
+                        </tr>
                         <tr>
                             <td class="label-col">Deposit Registered With:</td>
-                            <td></td>
+                            <td>TDS</td>
                         </tr>
-
                         <tr>
                             <td class="label-col">Tenancy Status:</td>
-                            <td>
-                                @if($currentTenancy)
-                                    <span style="color: #27ae60; font-weight: bold;">{{ ucfirst($currentTenancy->status) }}</span>
-                                @else
-                                    <span style="color: #999;">N/A</span>
-                                @endif
-                            </td>
+                            <td style="color: #27ae60; font-weight: bold;">RENEWED</td>
                         </tr>
-
                         <tr>
                             <td class="label-col">Next Rent Review Date:</td>
-                            <td>
-                                @if($currentTenancy && $currentTenancy->renewal_date)
-                                    {{ Carbon\Carbon::parse($currentTenancy->renewal_date)->format('d M Y') }}
-                                @else
-                                    <span style="color: #999;"></span>
-                                @endif
-                            </td>
+                            <td></td>
                         </tr>
-
                         <tr>
                             <td class="label-col">Property Inspections Conducted:</td>
                             <td></td>
@@ -708,10 +677,12 @@
 
             <!-- CONTACT & QUERIES -->
             <div class="contact-section">
-                <div class="contact-header">☎ Contact & Queries</div>
+                <div class="contact-header">
+                    ☎ Contact & Queries
+                </div>
                 <div class="contact-content">
                     <div class="contact-left">
-                        <p><strong>📧 <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f29a979e9e9db29e9d9c969d9c84939e9e978b82809d829780868bdc919ddc8799">[email&#160;protected]</a></strong></p>
+                        <p><strong>📧 hello@londonvalleyproperty.co.uk</strong></p>
                         <p><strong>☎ 0752 3959582 | 0208 287 4037</strong></p>
                     </div>
                     <div class="contact-right">
@@ -724,12 +695,14 @@
                         <p>LV Property</p>
                         <p>Date: ___________</p>
                     </div>
+                    <div class="date-field">
+                        <p></p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- FOOTER -->
-                <!-- FOOTER -->
         <div class="footer">
             <p><strong>LV PROPERTY</strong></p>
             <p>Registered Office: Suite 2, 10 Abbey Parade, Wimbledon, SW19 1DG, United Kingdom</p>

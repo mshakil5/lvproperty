@@ -175,6 +175,11 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::get('report/profitloss', [ReportController::class, 'profitLossReport'])->name('report.profitloss');
 
     Route::get('/statement', [StatementController::class, 'index'])->name('statement.index');
+
+    Route::get('/statement-design', function () {
+        return view('design');
+    });
+
     Route::post('/statement/generate', [StatementController::class, 'generate'])->name('statement.generate');
     Route::post('/statement/pdf', [StatementController::class, 'generatePdf'])->name('statement.pdf');
 

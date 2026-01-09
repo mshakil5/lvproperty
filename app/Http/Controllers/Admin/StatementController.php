@@ -11,6 +11,7 @@ use App\Models\Transaction;
 use App\Models\Tenant;
 use App\Models\Income;
 use App\Models\Expense;
+use App\Models\PropertyCompliance;
 use Carbon\Carbon;
 use Mpdf\Mpdf;
 
@@ -56,11 +57,23 @@ class StatementController extends Controller
             ->with('tenant')
             ->get();
 
+        // Get current/latest active tenancy
+        $currentTenancy = Tenancy::where('property_id', $property->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
         // Get all months in range
         $months = $this->getMonthsInRange($startDate, $endDate);
 
         // Build statement data with categories as rows
         $statementData = $this->buildStatementData($property, $months, $startDate, $endDate);
+
+        // Get property compliances with their compliance types
+        $propertyCompliances = PropertyCompliance::where('property_id', $property->id)
+            ->with('complianceType')
+            ->orderBy('expiry_date', 'asc')
+            ->get();
 
         $data = [
             'landlord' => $landlord,
@@ -68,9 +81,11 @@ class StatementController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'tenancies' => $tenancies,
+            'currentTenancy' => $currentTenancy,
             'months' => $months,
             'statementData' => $statementData,
-            'summary' => $this->calculateSummary($statementData, $months)
+            'summary' => $this->calculateSummary($statementData, $months),
+            'propertyCompliances' => $propertyCompliances
         ];
 
         return view('admin.statement.view', $data);
@@ -235,76 +250,92 @@ class StatementController extends Controller
         return $summary;
     }
 
-    public function generatePdf(Request $request)
-    {
-        $request->validate([
-            'landlord_id' => 'required|exists:landlords,id',
-            'property_id' => 'required|exists:properties,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date'
-        ]);
+public function generatePdf(Request $request)
+{
+    $request->validate([
+        'landlord_id' => 'required|exists:landlords,id',
+        'property_id' => 'required|exists:properties,id',
+        'start_date'  => 'required|date',
+        'end_date'    => 'required|date|after:start_date',
+    ]);
 
-        $landlord = Landlord::findOrFail($request->landlord_id);
-        $property = Property::findOrFail($request->property_id);
+    $landlord = Landlord::findOrFail($request->landlord_id);
+    $property = Property::findOrFail($request->property_id);
 
-        $startDate = Carbon::parse($request->start_date);
-        $endDate = Carbon::parse($request->end_date);
+    $startDate = Carbon::parse($request->start_date);
+    $endDate   = Carbon::parse($request->end_date);
 
-        // Get all tenancies for this property within the date range
-        $tenancies = Tenancy::where('property_id', $property->id)
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('start_date', [$startDate, $endDate])
-                      ->orWhereBetween('end_date', [$startDate, $endDate])
-                      ->orWhere(function ($q) use ($startDate, $endDate) {
-                          $q->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                      });
-            })
-            ->with('tenant')
-            ->get();
+    $tenancies = Tenancy::where('property_id', $property->id)
+        ->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('start_date', [$startDate, $endDate])
+              ->orWhereBetween('end_date', [$startDate, $endDate])
+              ->orWhere(function ($q2) use ($startDate, $endDate) {
+                  $q2->where('start_date', '<=', $startDate)
+                     ->where('end_date', '>=', $endDate);
+              });
+        })
+        ->with('tenant')
+        ->get();
 
-        // Get all months in range
-        $months = $this->getMonthsInRange($startDate, $endDate);
+    $currentTenancy = Tenancy::where('property_id', $property->id)
+        ->where('status', 'active')
+        ->latest()
+        ->first();
 
-        // Build statement data with categories as rows
-        $statementData = $this->buildStatementData($property, $months, $startDate, $endDate);
+    $months = $this->getMonthsInRange($startDate, $endDate);
 
-        $data = [
-            'landlord' => $landlord,
-            'property' => $property,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'tenancies' => $tenancies,
-            'months' => $months,
-            'statementData' => $statementData,
-            'summary' => $this->calculateSummary($statementData, $months)
-        ];
+    $statementData = $this->buildStatementData(
+        $property,
+        $months,
+        $startDate,
+        $endDate
+    );
 
-        // Generate HTML from view
-        $html = view('admin.statement.pdf', $data)->render();
+    $propertyCompliances = PropertyCompliance::where('property_id', $property->id)
+        ->with('complianceType')
+        ->orderBy('expiry_date')
+        ->get();
 
-        // Create MPDF instance
-        $mpdf = new Mpdf([
-            'mode' => 'utf-8',
-            'format' => 'A4',
-            'margin_left' => 15,
-            'margin_right' => 15,
-            'margin_top' => 16,
-            'margin_bottom' => 16,
-            'margin_header' => 9,
-            'margin_footer' => 9,
-        ]);
+    $data = [
+        'landlord'            => $landlord,
+        'property'            => $property,
+        'startDate'           => $startDate,
+        'endDate'             => $endDate,
+        'tenancies'           => $tenancies,
+        'currentTenancy'      => $currentTenancy,
+        'months'              => $months,
+        'statementData'       => $statementData,
+        'summary'             => $this->calculateSummary($statementData, $months),
+        'propertyCompliances' => $propertyCompliances,
+    ];
 
-        // Write HTML to PDF
-        $mpdf->WriteHTML($html);
+    $html = view('admin.statement.pdf', $data)->render();
 
-        // Generate filename
-        $filename = $property->property_reference . '_Statement_' . $startDate->format('Y-m-d') . '_to_' . $endDate->format('Y-m-d') . '.pdf';
+    $mpdf = new \Mpdf\Mpdf([
+        'mode'          => 'utf-8',
+        'format'        => 'A4',
+        'margin_left'   => 15,
+        'margin_right'  => 15,
+        'margin_top'    => 16,
+        'margin_bottom' => 16,
+        'margin_header' => 9,
+        'margin_footer' => 9,
+    ]);
 
-        // Output PDF for download
-        return response($mpdf->Output($filename, 'S'), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
-        ]);
-    }
+    $mpdf->WriteHTML($html);
+
+    $filename = $property->property_reference
+        . '_Statement_'
+        . $startDate->format('Y-m-d')
+        . '_to_'
+        . $endDate->format('Y-m-d')
+        . '.pdf';
+
+    // STREAM PDF (open in browser)
+    return response($mpdf->Output($filename, 'S'), 200, [
+        'Content-Type'        => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="'.$filename.'"',
+    ]);
+}
+
 }
