@@ -20,7 +20,7 @@ class StatementController extends Controller
     public function index(Request $request)
     {
         $landlords = Landlord::where('status', 1)->get();
-        
+
         if ($request->ajax() && $request->has('landlord_id')) {
             $properties = Property::where('landlord_id', $request->landlord_id)->get();
             return response()->json($properties);
@@ -48,11 +48,11 @@ class StatementController extends Controller
         $tenancies = Tenancy::where('property_id', $property->id)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('start_date', [$startDate, $endDate])
-                      ->orWhereBetween('end_date', [$startDate, $endDate])
-                      ->orWhere(function ($q) use ($startDate, $endDate) {
-                          $q->where('start_date', '<=', $startDate)
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q) use ($startDate, $endDate) {
+                        $q->where('start_date', '<=', $startDate)
                             ->where('end_date', '>=', $endDate);
-                      });
+                    });
             })
             ->with('tenant')
             ->get();
@@ -250,92 +250,91 @@ class StatementController extends Controller
         return $summary;
     }
 
-public function generatePdf(Request $request)
-{
-    $request->validate([
-        'landlord_id' => 'required|exists:landlords,id',
-        'property_id' => 'required|exists:properties,id',
-        'start_date'  => 'required|date',
-        'end_date'    => 'required|date|after:start_date',
-    ]);
+    public function generatePdf(Request $request)
+    {
+        $request->validate([
+            'landlord_id' => 'required|exists:landlords,id',
+            'property_id' => 'required|exists:properties,id',
+            'start_date'  => 'required|date',
+            'end_date'    => 'required|date|after:start_date',
+        ]);
 
-    $landlord = Landlord::findOrFail($request->landlord_id);
-    $property = Property::findOrFail($request->property_id);
+        $landlord = Landlord::findOrFail($request->landlord_id);
+        $property = Property::findOrFail($request->property_id);
 
-    $startDate = Carbon::parse($request->start_date);
-    $endDate   = Carbon::parse($request->end_date);
+        $startDate = Carbon::parse($request->start_date);
+        $endDate   = Carbon::parse($request->end_date);
 
-    $tenancies = Tenancy::where('property_id', $property->id)
-        ->where(function ($q) use ($startDate, $endDate) {
-            $q->whereBetween('start_date', [$startDate, $endDate])
-              ->orWhereBetween('end_date', [$startDate, $endDate])
-              ->orWhere(function ($q2) use ($startDate, $endDate) {
-                  $q2->where('start_date', '<=', $startDate)
-                     ->where('end_date', '>=', $endDate);
-              });
-        })
-        ->with('tenant')
-        ->get();
+        $tenancies = Tenancy::where('property_id', $property->id)
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->where('start_date', '<=', $startDate)
+                            ->where('end_date', '>=', $endDate);
+                    });
+            })
+            ->with('tenant')
+            ->get();
 
-    $currentTenancy = Tenancy::where('property_id', $property->id)
-        ->where('status', 'active')
-        ->latest()
-        ->first();
+        $currentTenancy = Tenancy::where('property_id', $property->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
 
-    $months = $this->getMonthsInRange($startDate, $endDate);
+        $months = $this->getMonthsInRange($startDate, $endDate);
 
-    $statementData = $this->buildStatementData(
-        $property,
-        $months,
-        $startDate,
-        $endDate
-    );
+        $statementData = $this->buildStatementData(
+            $property,
+            $months,
+            $startDate,
+            $endDate
+        );
 
-    $propertyCompliances = PropertyCompliance::where('property_id', $property->id)
-        ->with('complianceType')
-        ->orderBy('expiry_date')
-        ->get();
+        $propertyCompliances = PropertyCompliance::where('property_id', $property->id)
+            ->with('complianceType')
+            ->orderBy('expiry_date')
+            ->get();
 
-    $data = [
-        'landlord'            => $landlord,
-        'property'            => $property,
-        'startDate'           => $startDate,
-        'endDate'             => $endDate,
-        'tenancies'           => $tenancies,
-        'currentTenancy'      => $currentTenancy,
-        'months'              => $months,
-        'statementData'       => $statementData,
-        'summary'             => $this->calculateSummary($statementData, $months),
-        'propertyCompliances' => $propertyCompliances,
-    ];
+        $data = [
+            'landlord'            => $landlord,
+            'property'            => $property,
+            'startDate'           => $startDate,
+            'endDate'             => $endDate,
+            'tenancies'           => $tenancies,
+            'currentTenancy'      => $currentTenancy,
+            'months'              => $months,
+            'statementData'       => $statementData,
+            'summary'             => $this->calculateSummary($statementData, $months),
+            'propertyCompliances' => $propertyCompliances,
+        ];
 
-    $html = view('admin.statement.pdf', $data)->render();
+        $html = view('admin.statement.pdf', $data)->render();
 
-    $mpdf = new \Mpdf\Mpdf([
-        'mode'          => 'utf-8',
-        'format'        => 'A4',
-        'margin_left'   => 15,
-        'margin_right'  => 15,
-        'margin_top'    => 16,
-        'margin_bottom' => 16,
-        'margin_header' => 9,
-        'margin_footer' => 9,
-    ]);
+        $mpdf = new \Mpdf\Mpdf([
+            'mode'          => 'utf-8',
+            'format'        => 'A4',
+            'margin_left'   => 15,
+            'margin_right'  => 15,
+            'margin_top'    => 16,
+            'margin_bottom' => 16,
+            'margin_header' => 9,
+            'margin_footer' => 9,
+        ]);
 
-    $mpdf->WriteHTML($html);
+        $mpdf->WriteHTML($html);
 
-    $filename = $property->property_reference
-        . '_Statement_'
-        . $startDate->format('Y-m-d')
-        . '_to_'
-        . $endDate->format('Y-m-d')
-        . '.pdf';
+        $filename = $property->property_reference
+            . '_Statement_'
+            . $startDate->format('Y-m-d')
+            . '_to_'
+            . $endDate->format('Y-m-d')
+            . '.pdf';
 
-    // STREAM PDF (open in browser)
-    return response($mpdf->Output($filename, 'S'), 200, [
-        'Content-Type'        => 'application/pdf',
-        'Content-Disposition' => 'inline; filename="'.$filename.'"',
-    ]);
-}
-
+        // STREAM PDF (open in browser)
+        return response($mpdf->Output($filename, 'S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
 }

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Landlord;
 use App\Models\Property;
+use App\Models\Tenancy;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Mpdf\Mpdf;
 
 class InvoiceController extends Controller
 {
@@ -105,5 +107,94 @@ class InvoiceController extends Controller
         $summary['balance'] = $summary['totalReceipts'] - $summary['totalDeductions'];
 
         return $summary;
+    }
+
+    public function generatePdf(Request $request)
+    {
+        $request->validate([
+            'landlord_id' => 'required|exists:landlords,id',
+            'property_id' => 'required|exists:properties,id',
+            'month' => 'required|date_format:Y-m'
+        ]);
+
+        $landlord = Landlord::findOrFail($request->landlord_id);
+        $property = Property::findOrFail($request->property_id);
+        $month = Carbon::createFromFormat('Y-m', $request->month);
+
+        $startDate = $month->copy()->startOfMonth();
+        $endDate = $month->copy()->endOfMonth();
+
+        // Get current tenant
+        $currentTenancy = Tenancy::where('property_id', $property->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+        
+        $currentTenant = $currentTenancy ? $currentTenancy->tenant : null;
+
+        // Get monthly rent
+        $monthlyRent = $currentTenancy ? $currentTenancy->amount : 0;
+
+        // Get transactions
+        $transactions = Transaction::where('property_id', $property->id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->with(['income', 'expense'])
+            ->orderBy('date')
+            ->get();
+
+        // Calculate summary
+        $totalReceipts = $transactions->where('transaction_type', 'received')->sum('received_amount');
+        $totalDeductions = $transactions->where('expense_id', '!=', null)->sum('amount');
+        $balance = $totalReceipts - $totalDeductions;
+
+        $summary = [
+            'totalReceipts' => $totalReceipts,
+            'totalDeductions' => $totalDeductions,
+            'balance' => $balance
+        ];
+
+        $data = [
+            'landlord' => $landlord,
+            'property' => $property,
+            'month' => $month,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'currentTenant' => $currentTenant,
+            'monthlyRent' => $monthlyRent,
+            'transactions' => $transactions,
+            'summary' => $summary
+        ];
+
+        // Generate HTML from view
+        $html = view('admin.invoice.pdf', $data)->render();
+
+        // Create MPDF instance
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+            'margin_header' => 5,
+            'margin_footer' => 5,
+            'autoScriptToLang' => true,
+            'autoLangToScript' => true,
+        ]);
+
+        // Set default font
+        $mpdf->SetDefaultFont('Arial');
+
+        // Write HTML to PDF
+        $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
+
+        // Generate filename
+        $filename = $property->property_reference . '_Invoice_' . $month->format('m-Y') . '.pdf';
+
+        // Output PDF to browser stream (display instead of download)
+        return response($mpdf->Output($filename, 'I'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"'
+        ]);
     }
 }

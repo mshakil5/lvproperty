@@ -176,14 +176,11 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
 
     Route::get('/statement', [StatementController::class, 'index'])->name('statement.index');
 
-    Route::get('/statement-design', function () {
-        return view('design');
-    });
-
     Route::post('/statement/generate', [StatementController::class, 'generate'])->name('statement.generate');
     Route::post('/statement/pdf', [StatementController::class, 'generatePdf'])->name('statement.pdf');
 
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice.index');
     Route::post('/invoice/generate', [InvoiceController::class, 'generate'])->name('invoice.generate');
+    Route::post('/invoice/pdf', [InvoiceController::class, 'generatePdf'])->name('invoice.pdf');
 
 });
