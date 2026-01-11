@@ -5,9 +5,14 @@
 <div class="container-fluid">
     <div class="row mb-3 no-print">
         <div class="col-12 text-end">
-            <button class="btn btn-primary" onclick="window.print()">
-                <i class="ri-printer-line me-2"></i> Print Invoice
-            </button>
+            <a href="{{ route('invoice.download', [
+                'landlord_id' => $landlord->id,
+                'property_id' => $property->id,
+                'month' => $month->format('Y-m')
+            ]) }}" class="btn btn-danger">
+                <i class="ri-file-pdf-line me-2"></i> Download PDF
+            </a>
+
             <a href="{{ route('invoice.index') }}" class="btn btn-secondary ms-2">
                 <i class="ri-arrow-left-line me-2"></i> Back
             </a>
@@ -67,8 +72,8 @@
             <table class="main-table">
                 <thead>
                     <tr>
-                        <th width="12%">Date</th>
-                        <th width="58%">Description</th>
+                        <th width="12%" style="text-align: left;">Date</th>
+                        <th width="58%" style="text-align: left;">Description</th>
                         <th width="15%" class="amt-header">Deduction</th>
                         <th width="15%" class="amt-header">Receipts</th>
                     </tr>
@@ -195,7 +200,7 @@
 
     /* Main Table */
     .main-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    .main-table th { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 3px; text-align: left; }
+    .main-table th { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 3px; }
     .main-table td { padding: 3px 2px; vertical-align: top; }
     .sub-head td { font-weight: bold; text-decoration: underline; padding-top: 8px; }
     .amt { text-align: right; }

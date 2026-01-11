@@ -182,5 +182,6 @@ Route::group(['prefix' =>'admin/', 'middleware' => ['auth', 'is_admin']], functi
     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice.index');
     Route::post('/invoice/generate', [InvoiceController::class, 'generate'])->name('invoice.generate');
     Route::post('/invoice/pdf', [InvoiceController::class, 'generatePdf'])->name('invoice.pdf');
+    Route::get('/invoice/download', [InvoiceController::class, 'downloadPDF'])->name('invoice.download');
 
 });

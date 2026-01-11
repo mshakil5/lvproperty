@@ -10,6 +10,7 @@ use App\Models\Tenancy;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Mpdf\Mpdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class InvoiceController extends Controller
 {
@@ -197,4 +198,45 @@ class InvoiceController extends Controller
             'Content-Disposition' => 'inline; filename="' . $filename . '"'
         ]);
     }
+
+    public function downloadPDF(Request $request)
+    {
+        // Fetch data using the same logic as generate
+        $landlord = Landlord::findOrFail($request->landlord_id);
+        $property = Property::with('landlord')->findOrFail($request->property_id);
+        $month = Carbon::createFromFormat('Y-m', $request->month);
+        $startDate = $month->copy()->startOfMonth();
+        $endDate = $month->copy()->endOfMonth();
+
+        $currentTenancy = $property->tenancies()->where('status', 'active')->latest()->first();
+        $currentTenant = $currentTenancy ? $currentTenancy->tenant : null;
+        $transactions = Transaction::where('property_id', $property->id)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $summary = $this->calculateInvoiceSummary($transactions);
+        $monthlyRent = $currentTenancy ? $currentTenancy->amount : 0;
+
+        $data = [
+            'landlord' => $landlord,
+            'property' => $property,
+            'currentTenant' => $currentTenant,
+            'currentTenancy' => $currentTenancy,
+            'month' => $month,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'transactions' => $transactions,
+            'summary' => $summary,
+            'monthlyRent' => $monthlyRent
+        ];
+
+        // Load a specific PDF view (using floats instead of flexbox for DomPDF compatibility)
+        $pdf = Pdf::loadView('admin.invoice.pdf_template', $data)
+                ->setPaper('a4', 'portrait')
+                ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+
+        return $pdf->download('Invoice-'.$property->property_reference.'.pdf');
+    }
+
 }
