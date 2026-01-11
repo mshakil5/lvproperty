@@ -106,12 +106,12 @@
                     @else {{ $transaction->description ?? 'Transaction' }}
                     @endif
                 </td>
-                <td class="amt">
+                <td class="amt" style="text-align: right;">
                     @if ($transaction->expense_id && $transaction->amount > 0)
                         £{{ number_format($transaction->amount, 2) }}
                     @endif
                 </td>
-                <td class="amt">
+                <td class="amt" style="text-align: right;">
                     @if ($transaction->transaction_type === 'received')
                         £{{ number_format($transaction->received_amount > 0 ? $transaction->received_amount : $transaction->amount, 2) }}
                     @endif
