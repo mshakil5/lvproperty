@@ -1,285 +1,264 @@
 @extends('admin.pages.master')
-@section('title', 'Monthly Invoice')
+@section('title', 'Monthly Invoice - ' . $property->property_reference)
 @section('content')
 
-    <div class="container-fluid">
-        <div class="row mb-3">
-            <div class="col-12 text-end">
-                <button class="btn btn-primary" onclick="window.print()">
-                    <i class="ri-printer-line me-2"></i> Print Invoice
-                </button>
-                <a href="{{ route('invoice.index') }}" class="btn btn-secondary ms-2">
-                    <i class="ri-arrow-left-line me-2"></i> Back
-                </a>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body p-5" style="background: white;">
-                        <!-- Header Section -->
-                        <table width="100%" style="margin-bottom: 20px; border-collapse: collapse;">
-                            <tr style="vertical-align: top;">
-                                <td width="55%" style="padding-right: 20px; padding-bottom: 0;">
-                                    <h6 style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Property Reference
-                                    </h6>
-                                    <p style="font-size: 28px; font-weight: bold; margin: 0 0 15px 0;">
-                                        {{ $property->property_reference }}</p>
-                                    <p style="font-size: 11px; margin: 0 0 15px 0;">
-                                        {{ $property->address_first_line }}<br>{{ $property->city }}<br>{{ $property->postcode }}
-                                    </p>
-
-                                    <p style="font-size: 11px; margin: 0 0 5px 0;"><strong>Statement
-                                            Date</strong><br>{{ now()->format('l, j F Y') }}</p>
-                                    <p style="font-size: 11px; margin: 10px 0 0 0;"><strong>Statement
-                                            Number</strong><br>{{ $property->property_reference }}-{{ $month->format('m-Y') }}
-                                    </p>
-                                </td>
-                                <td width="45%" style="text-align: right; padding-bottom: 0;">
-                                    @php $companyDetails = \App\Models\CompanyDetails::first(); @endphp
-                                    @if ($companyDetails && $companyDetails->company_logo)
-                                        <img src="{{ asset('uploads/company/' . $companyDetails->company_logo) }}"
-                                            alt="Company Logo"
-                                            style="max-width: 140px; height: auto; display: block; margin-left: auto;">
-                                    @else
-                                        <div
-                                            style="width: 140px; height: 100px; background: #f0f0f0; border: 2px dashed #999; text-align: center; font-size: 11px; color: #999; padding-top: 35px; margin-left: auto;">
-                                            COMPANY<br>LOGO</div>
-                                    @endif
-                                </td>
-                            </tr>
-                        </table>
-
-                        <hr style="border: 1px solid #ddd; margin: 20px 0;">
-
-                        <!-- Landlord & Tenant Info -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <p style="font-size: 11px; margin: 0;"><strong>Landlord</strong></p>
-                                <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">{{ $landlord->name }}</p>
-                                @if ($landlord->company_name)
-                                    <p style="font-size: 11px; margin: 0;">{{ $landlord->company_name }}</p>
-                                @endif
-                                <p style="font-size: 11px; margin: 0;">Portfolio address:
-                                    {{ $property->address_first_line }}, {{ $property->city }}, {{ $property->postcode }}
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <p style="font-size: 11px; margin: 0;"><strong>Tenant</strong></p>
-                                <p style="font-size: 12px; font-weight: bold; margin: 5px 0;">
-                                    {{ $currentTenant->name ?? 'N/A' }}</p>
-                            </div>
-                        </div>
-
-                        <hr style="border: 1px solid #ddd; margin: 20px 0;">
-
-                        <!-- Rent Details -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <p style="font-size: 11px; margin: 0;"><strong>Rent</strong></p>
-                                <p style="font-size: 12px; margin: 5px 0;">
-                                    £{{ number_format($monthlyRent > 0 ? $monthlyRent : 0, 2) }} P/M</p>
-                                <p style="font-size: 11px; margin: 0;"><strong>Rent Period</strong></p>
-                                <p style="font-size: 12px; margin: 5px 0;">{{ $startDate->format('l, j F Y') }} to
-                                    {{ $endDate->format('l, j F Y') }}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p style="font-size: 11px; margin: 0;"><strong>Service</strong></p>
-                                <p style="font-size: 12px; margin: 5px 0;">
-                                    {{ $property->service_type ?? 'Full Management Service' }}</p>
-                                <p style="font-size: 11px; margin: 10px 0 0 0;"><strong>Current Reserve Balance</strong></p>
-                                <p style="font-size: 12px; margin: 5px 0;">£ -</p>
-                            </div>
-                        </div>
-
-                        <hr style="border: 1px solid #ddd; margin: 20px 0;">
-
-                        <!-- Transactions Table -->
-                        <div class="mb-4">
-                            <h6 style="font-size: 12px; font-weight: bold; margin-bottom: 10px;">Transactions</h6>
-                            <table class="table table-sm table-bordered" style="font-size: 11px;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width: 12%;">Date</th>
-                                        <th style="width: 50%;">Description</th>
-                                        <th class="text-end" style="width: 19%;">Receipts</th>
-                                        <th class="text-end" style="width: 19%;">Deductions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($transactions as $transaction)
-                                        <tr>
-                                            <td>{{ Carbon\Carbon::parse($transaction->date)->format('d/m/Y') }}</td>
-                                            <td>
-                                                @if ($transaction->income)
-                                                    {{ $transaction->income->name }}
-                                                @elseif($transaction->expense)
-                                                    {{ $transaction->expense->name }}
-                                                @else
-                                                    {{ $transaction->description ?? 'Transaction' }}
-                                                @endif
-                                            </td>
-                                            <td class="text-end">
-                                                @if ($transaction->transaction_type === 'received')
-                                                    @if ($transaction->received_amount > 0)
-                                                        £{{ number_format($transaction->received_amount, 2) }}
-                                                    @elseif($transaction->amount > 0)
-                                                        £{{ number_format($transaction->amount, 2) }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                @else
-                                                    -
-                                                @endif
-                                            </td>
-                                            <td class="text-end">
-                                                @if ($transaction->expense_id && $transaction->amount > 0)
-                                                    £{{ number_format($transaction->amount, 2) }}
-                                                @else
-                                                    -
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="4" class="text-center" style="padding: 20px;">
-                                                <p style="margin: 0; color: #999;">No transactions found for this period</p>
-                                            </td>
-                                        </tr>
-                                    @endforelse
-
-                                    <tr class="table-light" style="font-weight: bold;">
-                                        <td colspan="2">Total</td>
-                                        <td class="text-end">£{{ number_format($summary['totalReceipts'], 2) }}</td>
-                                        <td class="text-end">£{{ number_format($summary['totalDeductions'], 2) }}</td>
-                                    </tr>
-                                    <tr style="background-color: #fff3cd; font-weight: bold;">
-                                        <td colspan="2">Balance</td>
-                                        <td colspan="2" class="text-end"
-                                            style="color: {{ $summary['balance'] >= 0 ? '#28a745' : '#dc3545' }};">
-                                            {{ $summary['balance'] >= 0 ? '+' : '' }}£{{ number_format($summary['balance'], 2) }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <hr style="border: 1px solid #ddd; margin: 20px 0;">
-
-                        <!-- Bank Details -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <h6 style="font-size: 12px; font-weight: bold; margin-bottom: 10px;">Bank Details</h6>
-                                @if ($landlord->bank_name)
-                                    <p style="font-size: 11px; margin: 5px 0;"><strong>Bank:</strong>
-                                        {{ $landlord->bank_name }}</p>
-                                @endif
-                                @if ($landlord->sort_code)
-                                    <p style="font-size: 11px; margin: 5px 0;"><strong>Sort Code:</strong>
-                                        {{ $landlord->sort_code }}</p>
-                                @endif
-                                @if ($landlord->account_number)
-                                    <p style="font-size: 11px; margin: 5px 0;"><strong>Account No:</strong>
-                                        {{ $landlord->account_number }}</p>
-                                @endif
-                                @if (!$landlord->bank_name && !$landlord->sort_code && !$landlord->account_number)
-                                    <p style="font-size: 10px; margin: 10px 0 0 0; color: #666; font-style: italic;">Bank
-                                        Details not provided</p>
-                                @endif
-                            </div>
-                            <div class="col-md-6">
-                                <h6 style="font-size: 12px; font-weight: bold; margin-bottom: 10px;">Summary</h6>
-                                <table class="table table-sm" style="font-size: 10px; margin-bottom: 0;">
-                                    <tr>
-                                        <td><strong>Total Receipts:</strong></td>
-                                        <td class="text-end">
-                                            <strong>£{{ number_format($summary['totalReceipts'], 2) }}</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Total Deductions:</strong></td>
-                                        <td class="text-end">
-                                            <strong>£{{ number_format($summary['totalDeductions'], 2) }}</strong></td>
-                                    </tr>
-                                    <tr style="border-top: 1px solid #ddd;">
-                                        <td><strong>Balance:</strong></td>
-                                        <td class="text-end"
-                                            style="color: {{ $summary['balance'] >= 0 ? '#28a745' : '#dc3545' }}; font-weight: bold;">
-                                            {{ $summary['balance'] >= 0 ? '+' : '' }}£{{ number_format($summary['balance'], 2) }}
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
-                        <hr style="border: 1px solid #ddd; margin: 20px 0;">
-
-                        <!-- Footer/Notes -->
-                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px;">
-                            <p style="font-size: 10px; margin: 0; line-height: 1.6;">
-                                <strong>NOTE:</strong> This invoice has been generated by the Property Management System.
-                                For any queries regarding your account or these charges, please contact us immediately.
-                            </p>
-                        </div>
-
-                        <!-- Company Info -->
-                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center;">
-                            <p style="font-size: 9px; color: #666; margin: 0;">
-                                Property Management System | Invoice Generated on {{ now()->format('j F Y') }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+    <div class="row mb-3 no-print">
+        <div class="col-12 text-end">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="ri-printer-line me-2"></i> Print Invoice
+            </button>
+            <a href="{{ route('invoice.index') }}" class="btn btn-secondary ms-2">
+                <i class="ri-arrow-left-line me-2"></i> Back
+            </a>
         </div>
     </div>
 
-    <style>
-        @media print {
+    <div class="invoice-wrapper">
+        <div class="content-top">
+            <header class="header">
+                <div class="recipient">
+                    <p>
+                        <strong>{{ $landlord->name }}</strong><br>
+                        @if($landlord->company_name) {{ $landlord->company_name }}<br> @endif
+                        {{ $property->address_first_line }}<br>
+                        {{ $property->city }}<br>
+                        {{ $property->postcode }}
+                    </p>
+                </div>
+                <div class="invoice-stamp">
+                    <h1>INVOICE</h1>
+                </div>
+                <div class="brand">
+                    @php $companyDetails = \App\Models\CompanyDetails::first(); @endphp
+                    @if ($companyDetails && $companyDetails->company_logo)
+                        <img src="{{ asset('uploads/company/' . $companyDetails->company_logo) }}" style="max-width: 80px; height: auto;">
+                    @else
+                        <span class="lv-logo">LV</span>
+                        <span class="brand-text">PROPERTY</span>
+                    @endif
+                </div>
+            </header>
 
-            .btn,
-            a.btn {
-                display: none !important;
-            }
+            <div class="meta-section">
+                <div class="meta-left">
+                    <table class="bordered-info">
+                        <tr><td>Service</td><td><strong>{{ $property->service_type ?? 'Full Management Service' }}</strong></td></tr>
+                        <tr><td>Tenant</td><td><strong>{{ $currentTenant->name ?? 'N/A' }}</strong></td></tr>
+                        <tr><td>Rent</td><td><strong>£{{ number_format($monthlyRent, 2) }} P/M</strong></td></tr>
+                    </table>
+                    <div class="rent-box">
+                        <strong>Rent Period</strong> &nbsp; {{ $startDate->format('l, j F Y') }} &nbsp; <strong>to</strong> &nbsp; {{ $endDate->format('l, j F Y') }}
+                    </div>
+                </div>
 
-            body {
-                background: white;
-            }
+                <div class="meta-right">
+                    <table class="clean-align">
+                        <tr><td>Portfolio Reference</td><td>:</td><td><strong>{{ $property->property_reference }}</strong></td></tr>
+                        <tr><td>Portfolio address</td><td>:</td><td>{{ $property->address_first_line }}, {{ $property->city }}, {{ $property->postcode }}</td></tr>
+                        <tr><td>Statement Date</td><td>:</td><td>{{ now()->format('l, j F Y') }}</td></tr>
+                        <tr><td>Statement Number</td><td>:</td><td>{{ $property->property_reference }}-{{ $month->format('m-Y') }}</td></tr>
+                        <tr class="gap-row"><td></td><td></td><td></td></tr> <tr><td style="width: 46%;">Current Reserve Balance</td><td>:</td><td>£ -</td></tr>
+                        <tr><td>CNR Tax Held Balance</td><td>:</td><td>£ -</td></tr>
+                    </table>
+                </div>
+            </div>
 
-            .card {
-                border: none;
-                box-shadow: none;
-            }
+            <table class="main-table">
+                <thead>
+                    <tr>
+                        <th width="12%">Date</th>
+                        <th width="58%">Description</th>
+                        <th width="15%" class="amt-header">Deduction</th>
+                        <th width="15%" class="amt-header">Receipts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="sub-head"><td colspan="4">Rent Collection & Transactions</td></tr>
+                    @foreach($transactions as $transaction)
+                    <tr>
+                        <td>{{ Carbon\Carbon::parse($transaction->date)->format('d/m/Y') }}</td>
+                        <td>
+                            @if ($transaction->income) {{ $transaction->income->name }}
+                            @elseif($transaction->expense) {{ $transaction->expense->name }}
+                            @else {{ $transaction->description ?? 'Transaction' }}
+                            @endif
+                        </td>
+                        <td class="amt">
+                            @if ($transaction->expense_id && $transaction->amount > 0)
+                                £{{ number_format($transaction->amount, 2) }}
+                            @endif
+                        </td>
+                        <td class="amt">
+                            @if ($transaction->transaction_type === 'received')
+                                £{{ number_format($transaction->received_amount > 0 ? $transaction->received_amount : $transaction->amount, 2) }}
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr class="total-line">
+                        <td colspan="2" style="text-align:right">Total</td>
+                        <td class="amt">£{{ number_format($summary['totalDeductions'], 2) }}</td>
+                        <td class="amt">£{{ number_format($summary['totalReceipts'], 2) }}</td>
+                    </tr>
+                    <tr class="landlord-pay">
+                        <td colspan="3" style="text-align:right; border:none;"><strong>Paid to landlord</strong></td>
+                        <td class="black-bg" style="text-align:right;">
+                            {{ $summary['balance'] < 0 ? '-' : '' }}£{{ number_format(abs($summary['balance']), 2) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
 
-            .container-fluid {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-            }
+        <div class="content-bottom">
+            <div class="bottom-flex">
+                <div class="bank-wrap">
+                    <table class="bank-table">
+                        <tr><td>Bank Details</td><td>{{ $landlord->bank_name ?? 'N/A' }}</td></tr>
+                        <tr><td>Sort Code</td><td>{{ $landlord->sort_code ?? '******' }}</td></tr>
+                        <tr><td>Account No</td><td>{{ $landlord->account_number ?? '********' }}</td></tr>
+                    </table>
+                    <div class="security-msg">Bank Details withheld for Security</div>
+                </div>
+                <div class="note-wrap">
+                    <div class="note-box">NOTE: <span style="font-weight: normal; font-size: 9px;">This invoice is generated by the Property Management System.</span></div>
+                </div>
+            </div>
+
+            <div class="outstanding-section">
+                <div class="outstanding-title">Details of Outstanding Fees</div>
+                <table class="out-table">
+                    <tr>
+                        <th>Date</th><th>Type</th><th>Narrative</th><th>W.O Raise</th><th>Paid</th><th>Reserve held</th><th>Due</th>
+                    </tr>
+                    <tr><td colspan="7" style="height:15px"></td></tr>
+                </table>
+            </div>
+
+            <footer class="page-footer">
+                <p>LV Property Ltd. Registered office- The Generator Business Centre, Suite 2, 10 Abbey Parade, Wimbledon, England, SW19 1DG
+                    <br>
+                    Phone- 0208 726 0304. Email- hello@londonvalleyproperty.co.uk</p>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<style>
+    .invoice-wrapper {
+        background: #fff;
+        width: 210mm; /* standard A4 width */
+        min-height: 290mm;
+        margin: 20px auto;
+        padding: 20mm; /* standard print padding */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        line-height: 1.1;
+        color: #000;
+        box-sizing: border-box; /* Ensures padding doesn't add to width */
+    }
+
+    .content-top { flex: 1; }
+
+    /* Header & Branding */
+    .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+    .invoice-stamp h1 { border: 2px solid #000; padding: 2px 30px; font-size: 18px; margin: 0; }
+    .brand { text-align: center; color: #b01c1c; }
+    .lv-logo { font-size: 30px; font-weight: bold; display: block; }
+    .brand-text { font-size: 9px; font-weight: bold; display: block; margin-top: -5px; }
+
+    /* Meta Info */
+    .meta-section { 
+        display: flex; 
+        justify-content: space-between; 
+        margin-bottom: 25px; 
+        gap: 40px; /* Reduced from 150px to prevent squeezing the tables */
+    }
+    .meta-left { flex: 1; }
+    .meta-right { flex: 1.2; }
+
+    .bordered-info { border-collapse: collapse; width: 100%; }
+    .bordered-info td { border: 1px solid #000; padding: 2px 5px; }
+    .rent-box { border: 1px solid #000; margin-top: 5px; padding: 2px 5px; width: fit-content; white-space: nowrap; }
+    
+    .clean-align { border-collapse: collapse; width: 100%; }
+    .clean-align td { padding: 1px 2px; }
+    .clean-align td:nth-child(2) { padding: 0 5px; width: 5px; }
+
+    .gap-row td { padding-top: 15px !important; border: none !important; }
+
+    /* Main Table */
+    .main-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .main-table th { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 3px; text-align: left; }
+    .main-table td { padding: 3px 2px; vertical-align: top; }
+    .sub-head td { font-weight: bold; text-decoration: underline; padding-top: 8px; }
+    .amt { text-align: right; }
+    .amt-header { text-align: right; }
+    .total-line td { border-top: 1px solid #000; font-weight: bold; padding-top: 5px; }
+
+    /* Print Color Fixes */
+    .black-bg { 
+        background-color: #000 !important; 
+        color: #fff !important; 
+        text-align: center; 
+        font-weight: bold; 
+        width: 80px; 
+        padding: 3px;
+        -webkit-print-color-adjust: exact; 
+        print-color-adjust: exact;
+    }
+
+    .outstanding-title { 
+        background-color: #000 !important; 
+        color: #fff !important; 
+        text-align: center; 
+        font-weight: bold; 
+        margin-top: 20px;
+        -webkit-print-color-adjust: exact; 
+        print-color-adjust: exact;
+    }
+
+    /* Bottom Sections */
+    .bottom-flex { display: flex; justify-content: space-between; margin-top: 20px; align-items: flex-start; }
+    .bank-table { border: 1px solid #000; border-collapse: collapse; width: 220px; }
+    .bank-table td { border: 1px solid #000; padding: 2px 5px; }
+    .bank-table td:first-child { 
+        background-color: #eee !important; 
+        font-weight: bold; 
+        width: 80px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .security-msg { font-size: 8px; font-weight: bold; text-align: center; width: 220px; margin-top: 2px; }
+    .note-box { border: 1px solid #000; width: 280px; height: 50px; padding: 5px; font-weight: bold; }
+
+    .out-table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
+    .out-table th, .out-table td { border: 1px solid #000; text-align: center; padding: 2px; font-size: 9px; }
+
+    .page-footer { text-align: center; font-size: 9px; border-top: 1px solid #eee; padding-top: 10px; color: #555; margin-top: 20px; width: 100%; }
+
+    @media print {
+        @page {
+            size: A4;
+            margin: 10mm; /* Sets the physical printer margin */
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        .no-print { display: none !important; }
+        body { background: white; margin: 0; padding: 0; }
+        .invoice-wrapper { 
+            margin: 0; 
+            border: none; 
+            width: 100% !important; /* Uses full width of the printer area */
+            padding: 0; /* Let @page margin handle the space */
+            height: auto;
+            min-height: 95vh; /* Ensures footer stays down but allows for overflow */
         }
-
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table td,
-        .table th {
-            padding: 8px;
-            vertical-align: middle;
-        }
-
-        .table-sm td,
-        .table-sm th {
-            padding: 6px 8px;
-        }
-
-        .text-end {
-            text-align: right !important;
-        }
-    </style>
+    }
+</style>
 
 @endsection
