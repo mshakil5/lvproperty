@@ -89,11 +89,11 @@ class InvoiceController extends Controller
 
         foreach ($transactions as $transaction) {
             if ($transaction->transaction_type === 'received') {
-                $summary['totalReceipts'] += $transaction->received_amount ?? $transaction->amount;
+                $summary['totalReceipts'] += $transaction->amount ?? $transaction->amount;
                 
                 // Check if it's rent income
                 if ($transaction->income && strtolower($transaction->income->name) === 'rent') {
-                    $summary['rentAmount'] += $transaction->received_amount ?? $transaction->amount;
+                    $summary['rentAmount'] += $transaction->amount ?? $transaction->amount;
                 }
             } elseif ($transaction->expense_id) {
                 $summary['totalDeductions'] += $transaction->amount;
@@ -143,7 +143,7 @@ class InvoiceController extends Controller
             ->get();
 
         // Calculate summary
-        $totalReceipts = $transactions->where('transaction_type', 'received')->sum('received_amount');
+        $totalReceipts = $transactions->where('transaction_type', 'received')->sum('amount');
         $totalDeductions = $transactions->where('expense_id', '!=', null)->sum('amount');
         $balance = $totalReceipts - $totalDeductions;
 
