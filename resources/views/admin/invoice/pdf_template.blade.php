@@ -96,6 +96,7 @@
         </thead>
         <tbody>
             
+            
             <tr class="sub-head"><td colspan="4">Rent Collection & Transactions</td></tr>
             @foreach($transactions as $transaction)
             <tr>
