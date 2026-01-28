@@ -263,19 +263,7 @@ class StatementController extends Controller
         $property = Property::findOrFail($request->property_id);
 
         $startDate = Carbon::parse($request->start_date);
-        $endDate   = Carbon::parse($request->end_date);
-
-        $tenancies = Tenancy::where('property_id', $property->id)
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($q2) use ($startDate, $endDate) {
-                        $q2->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                    });
-            })
-            ->with('tenant')
-            ->get();
+        $endDate = Carbon::parse($request->end_date);
 
         $currentTenancy = Tenancy::where('property_id', $property->id)
             ->where('status', 'active')
@@ -296,30 +284,30 @@ class StatementController extends Controller
             ->orderBy('expiry_date')
             ->get();
 
+        $companyDetails = \App\Models\CompanyDetails::first();
+
         $data = [
             'landlord'            => $landlord,
             'property'            => $property,
             'startDate'           => $startDate,
             'endDate'             => $endDate,
-            'tenancies'           => $tenancies,
             'currentTenancy'      => $currentTenancy,
             'months'              => $months,
             'statementData'       => $statementData,
             'summary'             => $this->calculateSummary($statementData, $months),
             'propertyCompliances' => $propertyCompliances,
+            'companyDetails'      => $companyDetails,
         ];
 
         $html = view('admin.statement.pdf', $data)->render();
 
-        $mpdf = new \Mpdf\Mpdf([
+        $mpdf = new Mpdf([
             'mode'          => 'utf-8',
             'format'        => 'A4',
-            'margin_left'   => 15,
-            'margin_right'  => 15,
-            'margin_top'    => 16,
-            'margin_bottom' => 16,
-            'margin_header' => 9,
-            'margin_footer' => 9,
+            'margin_left'   => 0,
+            'margin_right'  => 0,
+            'margin_top'    => 0,
+            'margin_bottom' => 0,
         ]);
 
         $mpdf->WriteHTML($html);
@@ -331,7 +319,6 @@ class StatementController extends Controller
             . $endDate->format('Y-m-d')
             . '.pdf';
 
-        // STREAM PDF (open in browser)
         return response($mpdf->Output($filename, 'S'), 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
